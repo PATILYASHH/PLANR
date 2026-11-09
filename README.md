@@ -1,18 +1,25 @@
 # PLANR
 
+*An [ExoSynk Labs](https://github.com/PATILYASHH) project.*
+
+[![Build APK](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
+
 **Plan your attention.** PLANR is an offline Android focus app: mindful pauses
 before distracting apps, schedules, daily limits, and **Off-Grid Mode**, which
 locks the whole phone down to calls, camera and a few apps you choose for a set
 time.
 
-## Features (v0.1)
+## Features (v0.2)
 
 | | |
 |---|---|
 | **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera optional, up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
 | **Early-unlock step** | Pick one per session: typing challenge, 10-minute cooldown, or 10 math problems in a row. Early exits break your streak. |
 | **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily limit, and a pass window after you continue. |
+| **Scheduled Off-Grid** | Recurring Off-Grid windows. The **Bedtime** template locks the phone 11 PM – 7 AM every night. |
+| **Focus (Pomodoro)** | 25/50/90-minute focus blocks with breaks. Chosen apps (your shields by default) are blocked during focus and open again on breaks. |
 | **Schedules** | Block-list or allow-list by time and weekday, including overnight ranges. |
+| **Uninstall protection** | Optional device admin with no policies, so PLANR can't be deleted on impulse. |
 | **Dashboard** | Today's screen time, top apps, Off-Grid streak and history. |
 | **Privacy** | No internet permission. No content or keystroke reading. All data stays on the device. |
 
@@ -21,7 +28,10 @@ blocking, website shields, streaks/XP, widgets, AI intent check, and more).
 
 ## Build
 
-Requirements: Android Studio (latest), JDK 21, Android SDK 36.
+Every push to `main` builds a debug APK on GitHub Actions. Download it from the
+latest run's **Artifacts** section.
+
+Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/
@@ -46,13 +56,14 @@ reconnects after boot, it re-locks right away.
 ## Project layout
 
 ```
-app/src/main/java/com/planr/app/
+app/src/main/java/com/exosynk/planr/
 ├── PlanrApp.kt                  service locator
 ├── data/                        Room DB, Off-Grid store, apps repository
-├── engine/                      accessibility service, Enforcer, usage, boot
+├── admin/                       optional uninstall protection
+├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, usage, boot
 └── ui/                          Compose: screens, lock, intercept, components
 ```
 
 ## License
 
-All rights reserved © PATILYASHH. Choose a license before publishing.
+All rights reserved © ExoSynk Labs. Choose a license before publishing.

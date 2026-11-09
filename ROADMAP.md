@@ -1,5 +1,7 @@
 # PLANR — Product Spec & Roadmap
 
+*An ExoSynk Labs project.*
+
 PLANR is a from-scratch Android focus app: gentle nudges for everyday use, and a
 hard **Off-Grid Mode** that locks the whole phone down to emergency essentials
 for a chosen time.
@@ -33,7 +35,8 @@ limits, so no overlay permission is needed.
 Known limits (same as similar Play Store apps): rebooting into Android Safe Mode
 disables third-party services; quick-settings toggles in the notification shade
 still work; a pre-configured accessibility volume-key shortcut could turn the
-service off. Device-admin protection and a scheduled watchdog are planned.
+service off. Optional device-admin uninstall protection and a 20-second
+watchdog (for scheduled windows) are in place.
 
 ---
 
@@ -56,9 +59,10 @@ Status: ✅ in this MVP · 🔜 next phase · 💡 idea
 ### Schedules & modes
 - ✅ **Schedules** — block-list or allow-list by time and weekday
 - ✅ **Off-Grid Mode** — see above
-- 🔜 Scheduled Off-Grid (e.g. every night 11 PM–7 AM)
-- 🔜 Bedtime with Wind Down + auto Do-Not-Disturb
-- 🔜 Pomodoro focus/break cycles
+- ✅ Scheduled Off-Grid (e.g. every night 11 PM–7 AM)
+- ✅ Bedtime template (Off-Grid schedule)
+- 🔜 Wind Down reminder + auto Do-Not-Disturb
+- ✅ Pomodoro focus/break cycles
 - 🔜 Lockdown (can't edit rules during set hours)
 - 🔜 Grace period, Early kick, Session HUD overlay
 - 🔜 Eye Care 20-20-20 reminders
@@ -84,7 +88,8 @@ Status: ✅ in this MVP · 🔜 next phase · 💡 idea
 ## Architecture
 
 ```
-com.planr.app
+com.exosynk.planr
+├── admin/PlanrDeviceAdmin  optional uninstall protection
 ├── PlanrApp                 Application + simple service locator
 ├── data/
 │   ├── db/                  Room: ShieldRule, Schedule, OffGridSession

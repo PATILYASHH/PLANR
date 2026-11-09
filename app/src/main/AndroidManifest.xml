@@ -53,7 +53,7 @@
             android:exported="false"
             android:launchMode="singleTask"
             android:showWhenLocked="true"
-            android:taskAffinity="com.planr.app.lock"
+            android:taskAffinity="com.exosynk.planr.lock"
             android:theme="@style/Theme.Planr.Lock" />
 
         <!-- Shield / schedule interception screen -->
@@ -62,7 +62,7 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleTask"
-            android:taskAffinity="com.planr.app.intercept"
+            android:taskAffinity="com.exosynk.planr.intercept"
             android:theme="@style/Theme.Planr.Lock" />
 
         <service
@@ -77,6 +77,18 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
+        <receiver
+            android:name=".admin.PlanrDeviceAdmin"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
 
         <receiver
             android:name=".engine.BootReceiver"
