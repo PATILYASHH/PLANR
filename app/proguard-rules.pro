@@ -1,0 +1,2 @@
+-keep class com.planr.app.data.db.** { *; }
+-keep class * extends androidx.room.RoomDatabase
