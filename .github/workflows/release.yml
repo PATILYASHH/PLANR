@@ -1,13 +1,17 @@
 name: Release APK
 
-# Push a tag like v0.2.0 to build a signed release APK and publish a GitHub Release.
+# Two ways to release:
+#  1. Actions → Release APK → Run workflow → enter a version (e.g. 0.2.0).
+#     The tag vX.Y.Z is created on the chosen branch automatically.
+#  2. Push a tag like v0.2.0.
+# Re-running for an existing version replaces the release's APK.
 on:
   push:
     tags: ["v*.*.*"]
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Existing tag to (re)release, e.g. v0.2.0"
+      version:
+        description: "Version to release, e.g. 0.2.0 (no leading v)"
         required: true
 
 permissions:
@@ -19,8 +23,6 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - uses: actions/setup-java@v4
         with:
@@ -32,8 +34,16 @@ jobs:
       - name: Work out version from tag
         id: ver
         run: |
-          TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          NAME="${TAG#v}"
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            NAME="${{ github.event.inputs.version }}"
+            NAME="${NAME#v}"
+          else
+            NAME="${GITHUB_REF_NAME#v}"
+          fi
+          TAG="v$NAME"
+          if ! [[ "$NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must look like 1.2.3, got '$NAME'"; exit 1
+          fi
           IFS='.' read -r MAJ MIN PAT <<< "$NAME"
           CODE=$(( MAJ * 10000 + MIN * 100 + PAT ))
           echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
@@ -72,12 +82,26 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/PLANR-${{ steps.ver.outputs.name }}.apk"
           cd dist && sha256sum *.apk > SHA256SUMS.txt
 
+      - name: Release notes
+        id: notes
+        run: |
+          F="release-notes/${{ steps.ver.outputs.tag }}.md"
+          if [ ! -f "$F" ]; then
+            F="$RUNNER_TEMP/notes.md"
+            echo "PLANR ${{ steps.ver.outputs.name }} — an ExoSynk Labs project." > "$F"
+          fi
+          if [ "${{ steps.sign.outputs.signed }}" != "true" ]; then
+            printf '\n> ⚠️ Signed with a temporary debug key. Uninstall this build before installing a later signed release.\n' >> "$F"
+          fi
+          echo "path=$F" >> "$GITHUB_OUTPUT"
+
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: PLANR ${{ steps.ver.outputs.name }}
-          body_path: release-notes/${{ steps.ver.outputs.tag }}.md
+          body_path: ${{ steps.notes.outputs.path }}
           prerelease: ${{ startsWith(steps.ver.outputs.name, '0.') }}
           overwrite_files: true
           files: |
