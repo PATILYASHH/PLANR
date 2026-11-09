@@ -34,8 +34,8 @@ It needs Android 11 or newer.
 ## Releasing (maintainers)
 
 1. Write `release-notes/vX.Y.Z.md`.
-2. Open **Actions → Release APK → Run workflow** and enter `X.Y.Z`, or push a
-   `vX.Y.Z` tag.
+2. Set `VERSION` to `X.Y.Z` and push to `main`. You can also use **Actions → Release APK →
+   Run workflow**, or push a `vX.Y.Z` tag.
 3. The **Release APK** workflow builds `PLANR-X.Y.Z.apk`, signs it with the
    ExoSynk Labs key from repo secrets, and publishes the GitHub Release. 0.x
    versions are marked pre-release.

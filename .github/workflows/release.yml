@@ -4,10 +4,13 @@ name: Release APK
 #  1. Actions → Release APK → Run workflow → enter a version (e.g. 0.2.0).
 #     The tag vX.Y.Z is created on the chosen branch automatically.
 #  2. Push a tag like v0.2.0.
+#  3. Change the VERSION file on main (e.g. to 0.3.0) and push.
 # Re-running for an existing version replaces the release's APK.
 on:
   push:
     tags: ["v*.*.*"]
+    branches: [main]
+    paths: [VERSION]
   workflow_dispatch:
     inputs:
       version:
@@ -37,8 +40,10 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             NAME="${{ github.event.inputs.version }}"
             NAME="${NAME#v}"
-          else
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
             NAME="${GITHUB_REF_NAME#v}"
+          else
+            NAME="$(tr -d '[:space:]' < VERSION)"
           fi
           TAG="v$NAME"
           if ! [[ "$NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
