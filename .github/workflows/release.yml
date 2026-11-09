@@ -1,0 +1,85 @@
+name: Release APK
+
+# Push a tag like v0.2.0 to build a signed release APK and publish a GitHub Release.
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)release, e.g. v0.2.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Work out version from tag
+        id: ver
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          NAME="${TAG#v}"
+          IFS='.' read -r MAJ MIN PAT <<< "$NAME"
+          CODE=$(( MAJ * 10000 + MIN * 100 + PAT ))
+          echo "tag=$TAG"   >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$CODE" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG (versionName=$NAME, versionCode=$CODE)"
+
+      - name: Decode signing key
+        id: sign
+        env:
+          KEYSTORE_B64: ${{ secrets.PLANR_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/planr-release.jks"
+            echo "path=$RUNNER_TEMP/planr-release.jks" >> "$GITHUB_OUTPUT"
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::PLANR_KEYSTORE_BASE64 secret not set — signing with the debug key."
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        run: ./gradlew testDebugUnitTest --stacktrace
+
+      - name: Build release APK
+        env:
+          PLANR_KEYSTORE_PATH: ${{ steps.sign.outputs.path }}
+          PLANR_KEYSTORE_PASSWORD: ${{ secrets.PLANR_KEYSTORE_PASSWORD }}
+          PLANR_KEY_ALIAS: ${{ secrets.PLANR_KEY_ALIAS }}
+          PLANR_KEY_PASSWORD: ${{ secrets.PLANR_KEY_PASSWORD }}
+        run: |
+          ./gradlew assembleRelease --stacktrace \
+            -PplanrVersionName=${{ steps.ver.outputs.name }} \
+            -PplanrVersionCode=${{ steps.ver.outputs.code }}
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/PLANR-${{ steps.ver.outputs.name }}.apk"
+          cd dist && sha256sum *.apk > SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: PLANR ${{ steps.ver.outputs.name }}
+          body_path: release-notes/${{ steps.ver.outputs.tag }}.md
+          prerelease: ${{ startsWith(steps.ver.outputs.name, '0.') }}
+          overwrite_files: true
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS.txt

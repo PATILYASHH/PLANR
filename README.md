@@ -26,6 +26,21 @@ time.
 See [ROADMAP.md](ROADMAP.md) for the full plan (Pomodoro, bedtime, Reels
 blocking, website shields, streaks/XP, widgets, AI intent check, and more).
 
+## Download
+
+Get the latest APK from **[Releases](https://github.com/PATILYASHH/PLANR/releases)**.
+It needs Android 11 or newer.
+
+## Releasing (maintainers)
+
+1. Write `release-notes/vX.Y.Z.md`.
+2. Run `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. The **Release APK** workflow builds `PLANR-X.Y.Z.apk`, signs it with the
+   ExoSynk Labs key from repo secrets, and publishes the GitHub Release. 0.x
+   versions are marked pre-release.
+
+`versionCode` comes from the tag: `MAJOR*10000 + MINOR*100 + PATCH`.
+
 ## Build
 
 Every push to `main` builds a debug APK on GitHub Actions. Download it from the

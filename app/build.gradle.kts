@@ -4,6 +4,14 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
 }
 
+// Release CI passes -PplanrVersionName=1.2.3 -PplanrVersionCode=10203 from the git tag.
+val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.2.0"
+val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 200
+
+// Release signing comes from environment variables (GitHub secrets). Without them,
+// release builds fall back to the debug key so CI still produces an installable APK.
+val releaseKeystore = System.getenv("PLANR_KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
+
 android {
     namespace = "com.exosynk.planr"
     compileSdk = 36
@@ -12,12 +20,28 @@ android {
         applicationId = "com.exosynk.planr"
         minSdk = 30
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = planrVersionCode
+        versionName = planrVersionName
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = System.getenv("PLANR_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("PLANR_KEY_ALIAS")
+                keyPassword = System.getenv("PLANR_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = if (releaseKeystore != null) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
