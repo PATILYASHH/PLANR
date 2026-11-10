@@ -43,6 +43,7 @@ import com.exosynk.planr.ui.habit.HABIT_OFFGRID
 import com.exosynk.planr.ui.habit.HabitModule
 import com.exosynk.planr.today.TodayNav
 import com.exosynk.planr.today.TodayScreen
+import com.exosynk.planr.ui.screens.AboutScreen
 import com.exosynk.planr.ui.screens.InsightsScreen
 import com.exosynk.planr.ui.screens.SettingsScreen
 import com.exosynk.planr.ui.theme.PlanrTheme
@@ -121,7 +122,8 @@ class MainActivity : ComponentActivity() {
                     val parts = p?.split(':').orEmpty()
                     val id = parts.getOrNull(1)?.toLongOrNull() ?: 0L
                     when (parts.firstOrNull()) {
-                        PAGE_SETTINGS -> SettingsScreen(m, onBack = back)
+                        PAGE_SETTINGS -> SettingsScreen(m, onBack = back, onOpenAbout = { page = PAGE_ABOUT })
+                        PAGE_ABOUT -> AboutScreen(m, onBack = back)
                         PAGE_INSIGHTS -> InsightsScreen(m, onBack = back)
                         "alarm" -> AlarmEditor(m, id, onDone = back)
                         "reminder" -> ReminderEditor(
@@ -153,6 +155,7 @@ class MainActivity : ComponentActivity() {
                                     routines = { page = PAGE_ROUTINES },
                                     habit = { module = MODULE_HABIT; habitTab = 0 },
                                     settings = { page = PAGE_SETTINGS },
+                                    about = { page = PAGE_ABOUT },
                                 ),
                             )
                             MODULE_HABIT -> HabitModule(
@@ -161,6 +164,7 @@ class MainActivity : ComponentActivity() {
                                 onTab = { habitTab = it },
                                 onOpenInsights = { page = PAGE_INSIGHTS },
                                 onOpenSettings = { page = PAGE_SETTINGS },
+                                onOpenAbout = { page = PAGE_ABOUT },
                             )
                             MODULE_ALARM -> AlarmScreen(m, onEdit = { page = "alarm:$it" })
                             MODULE_REMINDERS -> RemindersScreen(m, onEdit = { page = "reminder:$it" })
@@ -199,5 +203,6 @@ class MainActivity : ComponentActivity() {
         private const val PAGE_SETTINGS = "settings"
         private const val PAGE_INSIGHTS = "insights"
         private const val PAGE_ROUTINES = "routines"
+        private const val PAGE_ABOUT = "about"
     }
 }

@@ -1,8 +1,9 @@
 # PLANR
 
-*An [ExoSynk Labs](https://github.com/PATILYASHH) project.*
+*An open-source [ExoSynk Labs](https://exosynk.com/exosynk-labs) project.*
 
 [![Build APK](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 **Plan your day. Guard your attention.** PLANR is an offline Android planner with
 five modules that work together: **Habit** (mindful pauses, focus, schedules and
@@ -114,3 +115,20 @@ app/src/main/java/com/exosynk/planr/
 ## License
 
 All rights reserved © ExoSynk Labs. Choose a license before publishing.
+
+## Contributing
+
+PLANR is open source and contributions are welcome: bug reports, ideas and pull
+requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+Copyright 2026 ExoSynk Labs. Licensed under the [Apache License, Version 2.0](LICENSE).
+Third-party credits are listed in [NOTICE](NOTICE) and in the app under
+**Settings → About PLANR**.
+
+## More from ExoSynk Labs
+
+PLANR is one of several open-source ExoSynk Labs projects, alongside **FITNS**,
+**XPENC** and **CONECTR**. See them all at
+**[exosynk.com/exosynk-labs](https://exosynk.com/exosynk-labs)**.

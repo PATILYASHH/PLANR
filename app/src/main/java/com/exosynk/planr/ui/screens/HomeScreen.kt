@@ -3,6 +3,7 @@ package com.exosynk.planr.ui.screens
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -62,6 +63,7 @@ fun HomeScreen(
     onGoOffGrid: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit = {},
 ) {
     val app = PlanrApp.instance
     val context = LocalContext.current
@@ -189,22 +191,25 @@ fun HomeScreen(
             }
         }
         Gap(24.dp)
-        AboutFooter()
+        AboutFooter(onOpenAbout)
         Gap(24.dp)
     }
 }
 
 @Composable
-private fun AboutFooter() {
+private fun AboutFooter(onClick: () -> Unit) {
     val context = LocalContext.current
     val version = remember {
         runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
             .getOrNull() ?: ""
     }
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text("PLANR $version", style = MaterialTheme.typography.labelLarge)
         Text(
-            "An ExoSynk Labs project",
+            "An ExoSynk Labs project · open source · About",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

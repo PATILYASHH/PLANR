@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.TaskAlt
@@ -104,6 +105,7 @@ class TodayNav(
     val routines: () -> Unit,
     val habit: () -> Unit,
     val settings: () -> Unit,
+    val about: () -> Unit,
 )
 
 /**
@@ -163,6 +165,7 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                IconButton(onClick = nav.about) { Icon(Icons.Outlined.Info, contentDescription = "About PLANR") }
                 IconButton(onClick = nav.settings) { Icon(Icons.Outlined.Settings, contentDescription = "Settings") }
             }
             Gap(16.dp)

@@ -65,7 +65,7 @@ private val dayLetters = listOf("M", "T", "W", "T", "F", "S", "S")
 
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-fun SettingsScreen(modifier: Modifier, onBack: () -> Unit) {
+fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Unit = {}) {
     BackHandler(onBack = onBack)
     val app = PlanrApp.instance
     val context = LocalContext.current
@@ -340,6 +340,14 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit) {
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 ) { Text("Restore") }
             }
+        }
+        Gap(16.dp)
+        SectionCard(onClick = onOpenAbout) {
+            Text("About PLANR", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Version, open-source license, credits and more from ExoSynk Labs",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Gap(32.dp)
     }
