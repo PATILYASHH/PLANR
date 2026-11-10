@@ -33,6 +33,12 @@ class FocusStore(context: Context) {
     private val _state = MutableStateFlow(read())
     val state: StateFlow<FocusState> = _state.asStateFlow()
 
+    /** Called once for every focus block that runs to completion (argument: its minutes). */
+    @Volatile var onFocusBlockDone: ((Int) -> Unit)? = null
+
+    /** Called when a whole session (all blocks) finishes on its own. */
+    @Volatile var onSessionDone: (() -> Unit)? = null
+
     fun start(focusMinutes: Int, breakMinutes: Int, cycles: Int, blocked: Set<String>) {
         val s = rolledToToday(_state.value)
         write(
@@ -54,13 +60,16 @@ class FocusStore(context: Context) {
     }
 
     /** Moves to the next phase(s) if their time is up. Returns the current state. */
+    @Synchronized
     fun advance(now: Long = System.currentTimeMillis()): FocusState {
         var s = rolledToToday(_state.value)
         var changed = s != _state.value
+        val finishedBlocks = mutableListOf<Int>()
         while (s.active && now >= s.phaseEndAt) {
             changed = true
             s = when (s.phase) {
                 FocusPhase.FOCUS -> {
+                    finishedBlocks += s.focusMinutes
                     val done = s.copy(minutesToday = s.minutesToday + s.focusMinutes)
                     if (s.cycle >= s.totalCycles) done.copy(active = false)
                     else done.copy(
@@ -76,6 +85,8 @@ class FocusStore(context: Context) {
             }
         }
         if (changed) write(s)
+        finishedBlocks.forEach { onFocusBlockDone?.invoke(it) }
+        if (finishedBlocks.isNotEmpty() && !s.active) onSessionDone?.invoke()
         return s
     }
 

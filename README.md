@@ -4,24 +4,40 @@
 
 [![Build APK](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
 
-**Plan your attention.** PLANR is an offline Android focus app: mindful pauses
-before distracting apps, schedules, daily limits, and **Off-Grid Mode**, which
-locks the whole phone down to calls, camera and a few apps you choose for a set
-time.
+**Plan your day. Guard your attention.** PLANR is an offline Android planner with
+five modules that work together: **Habit** (mindful pauses, focus, schedules and
+**Off-Grid Mode**, which locks the phone down to calls, camera and a few apps),
+**Alarm**, **Reminders**, **Notes** and **Routines**.
 
-## Features (v0.2)
+## Habit module
 
 | | |
 |---|---|
-| **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera optional, up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
+| **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera is optional, and you can keep up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
 | **Early-unlock step** | Pick one per session: typing challenge, 10-minute cooldown, or 10 math problems in a row. Early exits break your streak. |
-| **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily limit, and a pass window after you continue. |
+| **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily time limit, daily **open limit**, and a pass window after you continue. |
+| **Mindful Gateway** | Optional pause before *every* app you open, with a skip list. |
+| **Emergency passes** | 0–5 per day to open an app that's over its limit or blocked by a schedule or focus block. Never during Off-Grid. |
+| **Lockdown** | Hours when rules can only get stricter. It can also block Android Settings. |
 | **Scheduled Off-Grid** | Recurring Off-Grid windows. The **Bedtime** template locks the phone 11 PM – 7 AM every night. |
+| **Wind Down & Eye Care** | Bedtime reminder with optional auto Do Not Disturb, and 20-20-20 eye breaks. |
 | **Focus (Pomodoro)** | 25/50/90-minute focus blocks with breaks. Chosen apps (your shields by default) are blocked during focus and open again on breaks. |
 | **Schedules** | Block-list or allow-list by time and weekday, including overnight ranges. |
+| **Insights** | 5-week heatmap, weekly top apps, 14-day history per app, XP, levels and achievements. |
+| **Widget** | Screen time or Off-Grid end time, plus level, streak and focus time. |
+| **Backup & restore** | Export to and import from a JSON file you control. |
 | **Uninstall protection** | Optional device admin with no policies, so PLANR can't be deleted on impulse. |
-| **Dashboard** | Today's screen time, top apps, Off-Grid streak and history. |
 | **Privacy** | No internet permission. No content or keystroke reading. All data stays on the device. |
+
+## Planner modules (v0.4)
+
+| | |
+|---|---|
+| **Alarm** | Alarm groups with a master switch, repeat days or a date, skip next, ringtone, per-alarm volume with fade-in, vibration patterns, snooze interval/repeat, read aloud, math-to-dismiss, morning brief. |
+| **Reminders** | Date/time, all-day or anytime; repeat; early alert; notification or alarm-style alert; categories; pin; Complete/Snooze from the notification. |
+| **Notes** | Text and checklists, colours, pin, archive, search, "Remind me" (linked reminder), quick notes from the Off-Grid lock screen. |
+| **Routines** | If-then automation with undo: time windows, alarm dismissed, charging, battery, headphones, app opened, Off-Grid, focus → DND, sound mode, volume, Off-Grid, Focus, Gateway, alarm groups, messages, today's brief, open app. |
+| **Together** | Today card on Habit home, morning brief after alarms, routines that drive Off-Grid/Focus/Gateway/alarm groups, XP for reminders and no-snooze wake-ups, one backup for everything. |
 
 See [ROADMAP.md](ROADMAP.md) for the full plan (Pomodoro, bedtime, Reels
 blocking, website shields, streaks/XP, widgets, AI intent check, and more).
@@ -51,7 +67,7 @@ Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest    # schedule logic tests
+./gradlew testDebugUnitTest    # schedules, lockdown, XP, alarms, reminders, routines, backup
 ```
 
 ## First run
@@ -60,6 +76,7 @@ Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
 2. Turn on **PLANR** under Accessibility.
 3. Grant **Usage access**.
 4. Add a shield, create a schedule, or go Off-Grid.
+5. In **Alarm**, allow notifications and full-screen alarms if PLANR asks.
 
 ## How Off-Grid works
 
@@ -73,11 +90,16 @@ reconnects after boot, it re-locks right away.
 
 ```
 app/src/main/java/com/exosynk/planr/
-├── PlanrApp.kt                  service locator
-├── data/                        Room DB, Off-Grid store, apps repository
+├── PlanrApp.kt                  service locator, reschedules everything on start
+├── alarm/                       alarms & groups: scheduler, ringing service, ring screen, editor
+├── reminder/                    reminders & categories: scheduler, receiver, screens
+├── notes/                       notes & checklists
+├── routine/                     routines: model/codec, engine (triggers, actions, undo), screens
+├── today/                       cross-module Today summary and card
+├── data/                        Room DB, Off-Grid/settings/progress stores, stats, backup
 ├── admin/                       optional uninstall protection
-├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, usage, boot
-└── ui/                          Compose: screens, lock, intercept, components
+├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, routines, notifications
+└── ui/                          Compose: screens, lock, intercept, widget, components
 ```
 
 ## License

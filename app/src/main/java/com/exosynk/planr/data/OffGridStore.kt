@@ -120,18 +120,31 @@ class OffGridStore(context: Context) {
     }
 }
 
-/** Temporary "Continue" passes granted from the shield screen (in-memory). */
+/**
+ * Temporary passes (in-memory). A normal pass skips the shield pause after "Continue";
+ * an emergency pass also overrides daily limits, open limits, schedules and focus
+ * blocks (never Off-Grid).
+ */
 object PassStore {
     private val passes = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val emergency = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     fun grant(packageName: String, minutes: Int) {
         passes[packageName] = System.currentTimeMillis() + minutes.coerceAtLeast(1) * 60_000L
     }
 
-    fun hasPass(packageName: String): Boolean {
-        val until = passes[packageName] ?: return false
+    fun grantEmergency(packageName: String, minutes: Int) {
+        emergency[packageName] = System.currentTimeMillis() + minutes.coerceAtLeast(1) * 60_000L
+    }
+
+    fun hasPass(packageName: String): Boolean = valid(passes, packageName)
+
+    fun hasEmergencyPass(packageName: String): Boolean = valid(emergency, packageName)
+
+    private fun valid(map: MutableMap<String, Long>, packageName: String): Boolean {
+        val until = map[packageName] ?: return false
         if (System.currentTimeMillis() < until) return true
-        passes.remove(packageName)
+        map.remove(packageName)
         return false
     }
 }

@@ -115,7 +115,7 @@ fun OffGridScreen(modifier: Modifier) {
                 Switch(checked = allowCamera, onCheckedChange = { allowCamera = it })
             }
             Gap(8.dp)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 extras.forEach { AppIcon(it, 36.dp) }
             }
             if (extras.isNotEmpty()) Gap(8.dp)

@@ -1,6 +1,8 @@
 package com.exosynk.planr.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -30,6 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.data.db.ShieldRule
+import com.exosynk.planr.data.db.wouldLoosen
+import com.exosynk.planr.ui.components.LockdownBanner
+import com.exosynk.planr.ui.components.rememberLockdown
 import com.exosynk.planr.ui.components.AppPickerSheet
 import com.exosynk.planr.ui.components.AppRow
 import com.exosynk.planr.ui.components.Gap
@@ -43,6 +48,7 @@ fun ShieldsScreen(modifier: Modifier) {
     val rules by app.db.shieldDao().observeAll().collectAsState(initial = emptyList())
     var picking by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf<ShieldRule?>(null) }
+    val lockdown = rememberLockdown()
 
     Box(modifier.fillMaxSize()) {
         LazyColumn(contentPadding = PaddingValues(20.dp, 24.dp, 20.dp, 96.dp)) {
@@ -53,6 +59,10 @@ fun ShieldsScreen(modifier: Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Gap(16.dp)
+                if (lockdown) {
+                    LockdownBanner("Shields can be added or tightened, not loosened or removed,")
+                    Gap(16.dp)
+                }
                 if (rules.isEmpty()) {
                     Text("No shields yet. Tap “Add shields” to protect your first app.")
                 }
@@ -62,6 +72,8 @@ fun ShieldsScreen(modifier: Modifier) {
                     AppRow(rule.packageName, rule.appLabel, describe(rule)) {
                         Switch(
                             checked = rule.enabled,
+                            // Lockdown: a paused shield may be switched on, not off.
+                            enabled = !lockdown || !rule.enabled,
                             onCheckedChange = { on ->
                                 app.appScope.launch { app.db.shieldDao().upsert(rule.copy(enabled = on)) }
                             },
@@ -98,15 +110,16 @@ fun ShieldsScreen(modifier: Modifier) {
     editing?.let { rule ->
         ShieldEditDialog(
             rule = rule,
+            lockdown = lockdown,
             onDismiss = { editing = null },
             onSave = { updated ->
                 editing = null
                 app.appScope.launch { app.db.shieldDao().upsert(updated) }
             },
-            onDelete = {
+            onDelete = if (lockdown) null else ({
                 editing = null
                 app.appScope.launch { app.db.shieldDao().delete(rule.packageName) }
-            },
+            }),
         )
     }
 }
@@ -115,26 +128,38 @@ private fun describe(r: ShieldRule): String = buildList {
     add("${r.pauseSeconds}s pause")
     if (r.delaySeconds > 0) add("${r.delaySeconds}s delay")
     if (r.dailyLimitMinutes > 0) add("${r.dailyLimitMinutes}m/day limit")
+    if (r.dailyOpenLimit > 0) add("${r.dailyOpenLimit} opens/day")
     add("${r.passMinutes}m pass")
 }.joinToString(" · ")
 
 @Composable
 private fun ShieldEditDialog(
     rule: ShieldRule,
+    lockdown: Boolean,
     onDismiss: () -> Unit,
     onSave: (ShieldRule) -> Unit,
-    onDelete: () -> Unit,
+    onDelete: (() -> Unit)?,
 ) {
     var pause by remember { mutableFloatStateOf(rule.pauseSeconds.toFloat()) }
     var delay by remember { mutableFloatStateOf(rule.delaySeconds.toFloat()) }
     var limit by remember { mutableFloatStateOf(rule.dailyLimitMinutes.toFloat()) }
     var pass by remember { mutableFloatStateOf(rule.passMinutes.toFloat()) }
+    var opens by remember { mutableFloatStateOf(rule.dailyOpenLimit.toFloat()) }
+
+    val updated = rule.copy(
+        pauseSeconds = pause.roundToInt(),
+        delaySeconds = delay.roundToInt(),
+        dailyLimitMinutes = limit.roundToInt(),
+        passMinutes = pass.roundToInt(),
+        dailyOpenLimit = opens.roundToInt(),
+    )
+    val blockedByLockdown = lockdown && rule.wouldLoosen(updated)
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(rule.appLabel) },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
                 LabeledSlider("Breathing pause: ${pause.roundToInt()}s", pause, 3f..30f, 26) { pause = it }
                 LabeledSlider(
                     "Forced delay: ${if (delay < 1) "off" else "${delay.roundToInt()}s"}",
@@ -144,22 +169,26 @@ private fun ShieldEditDialog(
                     "Daily limit: ${if (limit < 1) "none" else "${limit.roundToInt()} min"}",
                     limit, 0f..180f, 35,
                 ) { limit = it }
+                LabeledSlider(
+                    "Opens per day: ${if (opens < 1) "unlimited" else "${opens.roundToInt()}"}",
+                    opens, 0f..20f, 19,
+                ) { opens = it }
                 LabeledSlider("Pass after continuing: ${pass.roundToInt()} min", pass, 1f..30f, 28) { pass = it }
-                Gap(8.dp)
-                TextButton(onClick = onDelete) { Text("Remove shield", color = Danger) }
+                if (blockedByLockdown) {
+                    Text(
+                        "Lockdown is on: you can only make this shield stricter.",
+                        color = Danger,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+                if (onDelete != null) {
+                    Gap(8.dp)
+                    TextButton(onClick = onDelete) { Text("Remove shield", color = Danger) }
+                }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                onSave(
-                    rule.copy(
-                        pauseSeconds = pause.roundToInt(),
-                        delaySeconds = delay.roundToInt(),
-                        dailyLimitMinutes = limit.roundToInt(),
-                        passMinutes = pass.roundToInt(),
-                    )
-                )
-            }) { Text("Save") }
+            TextButton(enabled = !blockedByLockdown, onClick = { onSave(updated) }) { Text("Save") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

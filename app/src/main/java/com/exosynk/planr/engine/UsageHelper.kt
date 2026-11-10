@@ -32,12 +32,33 @@ class UsageHelper(private val context: Context) {
         val now = System.currentTimeMillis()
         if (now - cacheAt < maxAgeMs) return cache
         if (!hasPermission()) return emptyMap()
-
         val start = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val totals = usageBetween(start, now)
+        cache = totals
+        cacheAt = now
+        return totals
+    }
+
+    /** Foreground time for one calendar day (uncached; call off the main thread). */
+    fun usageOn(day: LocalDate): Map<String, Long> {
+        if (!hasPermission()) return emptyMap()
+        val zone = ZoneId.systemDefault()
+        val start = day.atStartOfDay(zone).toInstant().toEpochMilli()
+        val end = minOf(day.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli(), System.currentTimeMillis())
+        return usageBetween(start, end)
+    }
+
+    /**
+     * Sums foreground time from raw RESUMED/PAUSED events in [start, end). An app
+     * already in front at [start] is counted from [start]; one still in front at
+     * [end] is counted up to [end].
+     */
+    private fun usageBetween(start: Long, end: Long): Map<String, Long> {
         val totals = HashMap<String, Long>()
         val resumedAt = HashMap<String, Long>()
-        val events = usm.queryEvents(start, now)
+        val events = runCatching { usm.queryEvents(start, end) }.getOrNull() ?: return emptyMap()
         val e = UsageEvents.Event()
+        val seen = HashSet<String>()
         while (events.hasNextEvent()) {
             events.getNextEvent(e)
             val pkg = e.packageName ?: continue
@@ -45,17 +66,18 @@ class UsageHelper(private val context: Context) {
                 UsageEvents.Event.ACTIVITY_RESUMED -> resumedAt[pkg] = e.timeStamp
                 UsageEvents.Event.ACTIVITY_PAUSED,
                 UsageEvents.Event.ACTIVITY_STOPPED -> {
-                    val began = resumedAt.remove(pkg) ?: continue
-                    totals[pkg] = (totals[pkg] ?: 0L) + (e.timeStamp - began)
+                    // A pause with no resume in range: the app was already open at [start].
+                    val began = resumedAt.remove(pkg)
+                        ?: if (pkg !in seen && e.eventType == UsageEvents.Event.ACTIVITY_PAUSED) start
+                        else null
+                    if (began != null) totals[pkg] = (totals[pkg] ?: 0L) + (e.timeStamp - began)
                 }
             }
+            seen += pkg
         }
-        // Apps still in the foreground right now
-        resumedAt.forEach { (pkg, began) -> totals[pkg] = (totals[pkg] ?: 0L) + (now - began) }
+        // Apps still in the foreground at the end of the range
+        resumedAt.forEach { (pkg, began) -> totals[pkg] = (totals[pkg] ?: 0L) + (end - began) }
         totals.remove(context.packageName)
-
-        cache = totals
-        cacheAt = now
         return totals
     }
 

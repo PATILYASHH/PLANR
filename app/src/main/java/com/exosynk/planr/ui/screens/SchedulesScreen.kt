@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
@@ -43,6 +45,8 @@ import com.exosynk.planr.data.db.ScheduleMode
 import com.exosynk.planr.data.db.packageSet
 import com.exosynk.planr.data.db.toPackageString
 import com.exosynk.planr.ui.components.AppPickerSheet
+import com.exosynk.planr.ui.components.LockdownBanner
+import com.exosynk.planr.ui.components.rememberLockdown
 import com.exosynk.planr.ui.components.Gap
 import com.exosynk.planr.ui.components.SectionCard
 import com.exosynk.planr.ui.components.formatClock
@@ -56,6 +60,7 @@ fun SchedulesScreen(modifier: Modifier) {
     val app = PlanrApp.instance
     val schedules by app.db.scheduleDao().observeAll().collectAsState(initial = emptyList())
     var editing by remember { mutableStateOf<Schedule?>(null) }
+    val lockdown = rememberLockdown()
 
     Box(modifier.fillMaxSize()) {
         LazyColumn(
@@ -69,6 +74,10 @@ fun SchedulesScreen(modifier: Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Gap(12.dp)
+                if (lockdown) {
+                    LockdownBanner("You can add schedules, but existing ones can't be changed or paused")
+                    Gap(12.dp)
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(onClick = {
                         editing = Schedule(
@@ -96,7 +105,7 @@ fun SchedulesScreen(modifier: Modifier) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                        Switch(checked = s.enabled, onCheckedChange = { on ->
+                        Switch(checked = s.enabled, enabled = !lockdown || !s.enabled, onCheckedChange = { on ->
                             app.appScope.launch { app.db.scheduleDao().upsert(s.copy(enabled = on)) }
                         })
                     }
@@ -114,12 +123,13 @@ fun SchedulesScreen(modifier: Modifier) {
     editing?.let { s ->
         ScheduleEditor(
             initial = s,
+            readOnly = lockdown && s.id != 0L,
             onDismiss = { editing = null },
             onSave = { updated ->
                 editing = null
                 app.appScope.launch { app.db.scheduleDao().upsert(updated) }
             },
-            onDelete = if (s.id == 0L) null else ({
+            onDelete = if (s.id == 0L || lockdown) null else ({
                 editing = null
                 app.appScope.launch { app.db.scheduleDao().delete(s) }
             }),
@@ -147,6 +157,7 @@ private fun daysText(mask: Int): String = when (mask) {
 @Composable
 private fun ScheduleEditor(
     initial: Schedule,
+    readOnly: Boolean,
     onDismiss: () -> Unit,
     onSave: (Schedule) -> Unit,
     onDelete: (() -> Unit)?,
@@ -169,7 +180,15 @@ private fun ScheduleEditor(
         onDismissRequest = onDismiss,
         title = { Text(if (initial.id == 0L) "New schedule" else "Edit schedule") },
         text = {
-            Column {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (readOnly) {
+                    Text(
+                        "Lockdown is on, so this schedule can't be changed right now.",
+                        color = Danger,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Gap(8.dp)
+                }
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it.take(30) },
@@ -249,7 +268,7 @@ private fun ScheduleEditor(
         },
         confirmButton = {
             TextButton(
-                enabled = days != 0 && (packages.isNotEmpty() || mode != ScheduleMode.BLOCK),
+                enabled = !readOnly && days != 0 && (packages.isNotEmpty() || mode != ScheduleMode.BLOCK),
                 onClick = {
                     onSave(
                         initial.copy(

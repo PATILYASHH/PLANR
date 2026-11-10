@@ -41,6 +41,7 @@ import com.exosynk.planr.ui.components.AppPickerSheet
 import com.exosynk.planr.ui.components.Gap
 import com.exosynk.planr.ui.components.SectionCard
 import com.exosynk.planr.ui.components.formatDuration
+import com.exosynk.planr.ui.components.rememberLockdown
 import com.exosynk.planr.ui.lock.formatHms
 import com.exosynk.planr.ui.theme.Accent
 import com.exosynk.planr.ui.theme.AccentSoft
@@ -116,8 +117,13 @@ private fun ActiveFocus(now: Long) {
             }
             Gap(16.dp)
         }
-        OutlinedButton(onClick = { focus.stop() }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text("Stop session")
+        val lockdown = rememberLockdown()
+        OutlinedButton(
+            onClick = { focus.stop() },
+            enabled = !lockdown,
+            modifier = Modifier.fillMaxWidth().height(52.dp),
+        ) {
+            Text(if (lockdown) "Can't stop during Lockdown" else "Stop session")
         }
     }
 }
