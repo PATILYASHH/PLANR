@@ -75,7 +75,7 @@ jobs:
 
       - name: Build release APK
         env:
-          PLANR_KEYSTORE_PATH: ${{ steps.sign.outputs.path }}
+          PLANR_KEYSTORE_PATH: ${{ steps.sign.outputs.path || '' }}
           PLANR_KEYSTORE_PASSWORD: ${{ secrets.PLANR_KEYSTORE_PASSWORD }}
           PLANR_KEY_ALIAS: ${{ secrets.PLANR_KEY_ALIAS }}
           PLANR_KEY_PASSWORD: ${{ secrets.PLANR_KEY_PASSWORD }}

@@ -10,7 +10,10 @@ val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?:
 
 // Release signing comes from environment variables (GitHub secrets). Without them,
 // release builds fall back to the debug key so CI still produces an installable APK.
-val releaseKeystore = System.getenv("PLANR_KEYSTORE_PATH")?.let { file(it) }?.takeIf { it.exists() }
+val releaseKeystore = System.getenv("PLANR_KEYSTORE_PATH")
+    ?.takeIf { it.isNotBlank() }
+    ?.let { file(it) }
+    ?.takeIf { it.exists() }
 
 android {
     namespace = "com.exosynk.planr"
