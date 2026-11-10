@@ -15,6 +15,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -54,6 +55,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 if (id < 0) return
                 AlarmService.start(context, AlarmService.Kind.ALARM, id, snooze = intent.getBooleanExtra(EXTRA_SNOOZE, false))
             }
+            ACTION_TEST -> AlarmService.start(context, AlarmService.Kind.TEST, 0L)
             ACTION_CANCEL_SNOOZE -> {
                 val id = intent.getLongExtra(EXTRA_ID, -1)
                 if (id < 0) return
@@ -67,6 +69,7 @@ class AlarmReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_FIRE = "com.exosynk.planr.alarm.FIRE"
         const val ACTION_CANCEL_SNOOZE = "com.exosynk.planr.alarm.CANCEL_SNOOZE"
+        const val ACTION_TEST = "com.exosynk.planr.alarm.TEST"
         const val EXTRA_ID = "id"
         const val EXTRA_SNOOZE = "snooze"
     }
@@ -79,7 +82,8 @@ class AlarmReceiver : BroadcastReceiver() {
  */
 class AlarmService : Service() {
 
-    enum class Kind { ALARM, REMINDER }
+    /** TEST = the "Test alarm" button: rings with default settings, nothing saved. */
+    enum class Kind { ALARM, REMINDER, TEST }
 
     data class Ring(
         val kind: Kind,
@@ -91,6 +95,8 @@ class AlarmService : Service() {
         val snoozesLeft: Int?, // null = unlimited
         val challenge: DismissChallenge,
         val morningBrief: Boolean,
+        /** Reminders linked to a contact show a Call / Message button. */
+        val contact: com.exosynk.planr.reminder.ReminderContact? = null,
     )
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -158,6 +164,21 @@ class AlarmService : Service() {
                 show(ring)
                 startAudio(alarm.sound, alarm.volume, alarm.gradualVolume, alarm.vibrate, alarm.pattern.timings, speech)
             }
+            Kind.TEST -> {
+                ring = Ring(
+                    kind = kind,
+                    id = 0,
+                    title = DateFormat.getTimeInstance(DateFormat.SHORT).format(Date()),
+                    subtitle = "Test alarm",
+                    canSnooze = false,
+                    snoozeMinutes = 5,
+                    snoozesLeft = null,
+                    challenge = DismissChallenge.NONE,
+                    morningBrief = false,
+                )
+                show(ring)
+                startAudio(null, 60, gradual = false, vibrate = true, pattern = VibrationPattern.BASIC.timings, speech = null)
+            }
             Kind.REMINDER -> {
                 val r = app.db.reminderDao().get(id) ?: return stopIfIdle()
                 if (r.completed) return stopIfIdle()
@@ -171,6 +192,7 @@ class AlarmService : Service() {
                     snoozesLeft = null,
                     challenge = DismissChallenge.NONE,
                     morningBrief = false,
+                    contact = r.contact,
                 )
                 show(ring)
                 startAudio(null, 70, gradual = true, vibrate = true, pattern = VibrationPattern.BASIC.timings, speech = r.title)
@@ -185,15 +207,52 @@ class AlarmService : Service() {
     private fun show(ring: Ring) {
         _ringing.value = ring
         _briefFor.value = null
+        holdRingWakeLock()
         goForeground(ringNotification(ring))
-        // The full-screen intent opens the ring screen when the phone is locked or idle.
-        // If Android withholds it, the accessibility service (when on) may still open it.
-        val nm = getSystemService(NotificationManager::class.java)
-        if (Build.VERSION.SDK_INT >= 34 && nm?.canUseFullScreenIntent() == false) {
-            PlanrAccessibilityService.instance?.let { svc ->
-                runCatching { svc.startActivity(AlarmRingActivity.intent(svc)) }
+        wakeScreen()
+        launchRingScreen()
+        releaseStartWakeLock()
+    }
+
+    /**
+     * Opens the full-screen alarm right away. The notification's full-screen intent does
+     * this when the phone is locked or the screen is off; launching directly also covers
+     * an unlocked phone in use, and phones where the full-screen intent is denied.
+     * Android allows the direct launch when "Display over other apps" is granted or the
+     * PLANR accessibility service is on.
+     */
+    private fun launchRingScreen() {
+        val canLaunch = Settings.canDrawOverlays(this)
+        val svc = PlanrAccessibilityService.instance
+        runCatching {
+            when {
+                canLaunch -> startActivity(AlarmRingActivity.intent(this))
+                svc != null -> svc.startActivity(AlarmRingActivity.intent(svc))
             }
         }
+    }
+
+    /** Turns the screen on for the alarm (the ring screen then keeps it on). */
+    @Suppress("DEPRECATION")
+    private fun wakeScreen() {
+        val pm = getSystemService(PowerManager::class.java) ?: return
+        if (pm.isInteractive) return
+        runCatching {
+            pm.newWakeLock(
+                PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP or PowerManager.ON_AFTER_RELEASE,
+                "planr:alarm-screen",
+            ).acquire(15_000L)
+        }
+    }
+
+    private var ringWakeLock: PowerManager.WakeLock? = null
+
+    /** Keeps the CPU awake while ringing so the timeout and fade-in run on time. */
+    private fun holdRingWakeLock() {
+        if (ringWakeLock?.isHeld == true) return
+        ringWakeLock = getSystemService(PowerManager::class.java)
+            ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "planr:alarm-ring")
+            ?.apply { setReferenceCounted(false); acquire(RING_TIMEOUT_MS + 60_000L) }
     }
 
     // ---- actions ----
@@ -209,6 +268,7 @@ class AlarmService : Service() {
                 Notifier.alarmSnoozed(this, ring.id, ring.subtitle, at)
             }
             Kind.REMINDER -> PlanrApp.instance.appScope.launch { Reminders.snooze(applicationContext, ring.id, ring.snoozeMinutes) }
+            Kind.TEST -> Unit
         }
         if (quiet) _ringing.value = null else finishRing()
     }
@@ -234,6 +294,7 @@ class AlarmService : Service() {
             Kind.REMINDER -> if (!missed) {
                 app.appScope.launch { Reminders.complete(applicationContext, ring.id) }
             }
+            Kind.TEST -> Unit
         }
         if (quiet) _ringing.value = null else finishRing()
     }
@@ -245,6 +306,9 @@ class AlarmService : Service() {
 
     private fun stopIfIdle() {
         if (_ringing.value != null) return
+        releaseStartWakeLock()
+        ringWakeLock?.let { if (it.isHeld) it.release() }
+        ringWakeLock = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelf()
     }
@@ -289,6 +353,7 @@ class AlarmService : Service() {
             val mp = MediaPlayer()
             val ok = runCatching {
                 mp.setAudioAttributes(alarmAttrs)
+                mp.setWakeMode(this, PowerManager.PARTIAL_WAKE_LOCK)
                 mp.setDataSource(this, uri)
                 mp.isLooping = true
                 mp.prepare()
@@ -388,9 +453,9 @@ class AlarmService : Service() {
         )
         val b = NotificationCompat.Builder(this, Notifier.CH_ALARMS)
             .setSmallIcon(R.drawable.ic_stat_planr)
-            .setContentTitle(if (ring.kind == Kind.ALARM) ring.subtitle else ring.title)
-            .setContentText(if (ring.kind == Kind.ALARM) ring.title else ring.subtitle)
-            .setCategory(if (ring.kind == Kind.ALARM) NotificationCompat.CATEGORY_ALARM else NotificationCompat.CATEGORY_REMINDER)
+            .setContentTitle(if (ring.kind == Kind.REMINDER) ring.title else ring.subtitle)
+            .setContentText(if (ring.kind == Kind.REMINDER) ring.subtitle else ring.title)
+            .setCategory(if (ring.kind == Kind.REMINDER) NotificationCompat.CATEGORY_REMINDER else NotificationCompat.CATEGORY_ALARM)
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setOngoing(true)
@@ -436,7 +501,41 @@ class AlarmService : Service() {
             _briefFor.value = null
         }
 
+        private var startWakeLock: PowerManager.WakeLock? = null
+
+        /**
+         * AlarmManager only keeps the phone awake during onReceive, so hold a wake lock
+         * until the service has the alarm on screen (or gives up).
+         */
+        private fun acquireStartWakeLock(context: Context) {
+            synchronized(this) {
+                if (startWakeLock?.isHeld == true) return
+                startWakeLock = context.getSystemService(PowerManager::class.java)
+                    ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "planr:alarm-start")
+                    ?.apply { setReferenceCounted(false); acquire(60_000L) }
+            }
+        }
+
+        private fun releaseStartWakeLock() {
+            synchronized(this) {
+                startWakeLock?.let { if (it.isHeld) it.release() }
+                startWakeLock = null
+            }
+        }
+
+        /** Rings the test alarm in [seconds] (exact, like a real alarm). */
+        fun scheduleTest(context: Context, seconds: Int = 10) {
+            val pi = android.app.PendingIntent.getBroadcast(
+                context, 0,
+                Intent(context, AlarmReceiver::class.java).setAction(AlarmReceiver.ACTION_TEST)
+                    .setData(android.net.Uri.parse("planr://alarm/test")),
+                android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+            )
+            AlarmScheduler.setClock(context, System.currentTimeMillis() + seconds * 1000L, pi)
+        }
+
         fun start(context: Context, kind: Kind, id: Long, snooze: Boolean = false) {
+            acquireStartWakeLock(context)
             val i = Intent(context, AlarmService::class.java)
                 .setAction(ACTION_RING)
                 .putExtra(EXTRA_KIND, kind.name)

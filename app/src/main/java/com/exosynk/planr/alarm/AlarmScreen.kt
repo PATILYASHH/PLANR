@@ -17,7 +17,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreateNewFolder
+import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.RadioButtonUnchecked
+import com.exosynk.planr.ui.theme.Success
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -91,7 +95,7 @@ fun AlarmScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
                     Column(Modifier.weight(1f)) {
                         Text(
                             if (next != null) AlarmTime.untilText(now, next.second) else "All alarms are off",
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp, lineHeight = 36.sp),
                         )
                         if (next != null) {
                             Text(
@@ -194,11 +198,27 @@ private fun AlarmCard(a: Alarm, groupOn: Boolean, now: LocalDateTime, groups: Li
                     fontWeight = FontWeight.Light,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = dim),
                 )
-                Text(
-                    scheduleText(a, now),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim),
-                )
+                if (a.isRepeating) {
+                    // Samsung-style weekday letters, active days highlighted
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        com.exosynk.planr.ui.components.DAY_LETTERS.forEachIndexed { i, l ->
+                            val on = a.daysMask and (1 shl i) != 0
+                            Text(
+                                l,
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                                color = if (on) MaterialTheme.colorScheme.primary.copy(alpha = dim)
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f * dim),
+                            )
+                        }
+                    }
+                } else {
+                    Text(
+                        scheduleText(a, now),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim),
+                    )
+                }
                 if (a.skippedAt != 0L && a.skippedAt > System.currentTimeMillis()) {
                     Text(
                         "Skipping " + DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(a.skippedAt)),
@@ -307,39 +327,93 @@ private fun GroupDialog(group: AlarmGroup, onDismiss: () -> Unit, onSave: (Strin
     )
 }
 
-/** Explains what Android needs for alarms to ring reliably, with buttons to fix it. */
+private data class SetupItem(val title: String, val why: String, val ok: Boolean, val fix: () -> Unit)
+
+/**
+ * Everything Android needs for an alarm to wake the phone and fill the screen, as a
+ * checklist with one-tap fixes, plus a test alarm to prove it works.
+ */
 @Composable
 private fun AlarmPermissionCard(tick: Int) {
     val context = LocalContext.current
-    val notifOk = remember(tick) { Notifier.canPost(context) }
-    val fullScreenOk = remember(tick) {
-        Build.VERSION.SDK_INT < 34 ||
-            context.getSystemService(android.app.NotificationManager::class.java)?.canUseFullScreenIntent() != false
+    val notifLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { }
+    fun open(intent: Intent) = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    val pkgUri = Uri.parse("package:${context.packageName}")
+    val items = remember(tick) {
+        buildList {
+            add(SetupItem("Notifications", "Shows the alarm and its Snooze/Dismiss buttons", Notifier.canPost(context)) {
+                if (Build.VERSION.SDK_INT >= 33) notifLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                else open(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
+            })
+            if (Build.VERSION.SDK_INT >= 34) {
+                val ok = context.getSystemService(android.app.NotificationManager::class.java)?.canUseFullScreenIntent() != false
+                add(SetupItem("Full-screen alarms", "Turns the screen on and fills it when the phone is locked", ok) {
+                    open(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, pkgUri))
+                })
+            }
+            if (Build.VERSION.SDK_INT >= 31) {
+                add(SetupItem("Exact alarms", "Rings on the minute, even in battery saver", AlarmScheduler.canScheduleExact(context)) {
+                    open(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, pkgUri))
+                })
+            }
+            add(SetupItem("Display over other apps", "Opens the full alarm screen instantly, even while you're using another app", Settings.canDrawOverlays(context)) {
+                open(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, pkgUri))
+            })
+            val pm = context.getSystemService(android.os.PowerManager::class.java)
+            add(SetupItem("No battery restriction", "Stops the phone from putting PLANR to sleep (important on Samsung)", pm?.isIgnoringBatteryOptimizations(context.packageName) == true) {
+                @android.annotation.SuppressLint("BatteryLife")
+                val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, pkgUri)
+                if (open(i).isFailure) open(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            })
+        }
     }
-    val exactOk = remember(tick) { AlarmScheduler.canScheduleExact(context) }
-    if (notifOk && fullScreenOk && exactOk) return
-    SectionCard {
-        Text("Alarms need a few permissions", style = MaterialTheme.typography.titleMedium)
+    val done = items.count { it.ok }
+    var expanded by remember(done == items.size) { mutableStateOf(done < items.size) }
+    SectionCard(onClick = { expanded = !expanded }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                if (done == items.size) Icons.Outlined.CheckCircle else Icons.Outlined.ErrorOutline,
+                contentDescription = null,
+                tint = if (done == items.size) Success else Danger,
+            )
+            androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 10.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (done == items.size) "Alarms are ready" else "Alarm setup · $done of ${items.size}",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    if (done == items.size) "They'll wake the screen and fill it" else "Finish these so alarms always ring full screen",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (expanded) {
+            Gap(8.dp)
+            items.forEach { item ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        if (item.ok) Icons.Outlined.CheckCircle else Icons.Outlined.RadioButtonUnchecked,
+                        contentDescription = null,
+                        tint = if (item.ok) Success else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    androidx.compose.foundation.layout.Spacer(Modifier.padding(start = 10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(item.title, style = MaterialTheme.typography.titleMedium)
+                        Text(item.why, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (!item.ok) FilledTonalButton(onClick = item.fix) { Text("Allow") }
+                }
+            }
+        }
         Gap(4.dp)
-        fun open(intent: Intent) = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-        if (!notifOk) {
-            Text("Notifications are off, so ringing alarms may not show.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FilledTonalButton(onClick = {
-                open(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName))
-            }) { Text("Allow notifications") }
-        }
-        if (!fullScreenOk && Build.VERSION.SDK_INT >= 34) {
-            Text("Full-screen alarms are off, so alarms only show as a banner.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FilledTonalButton(onClick = {
-                open(Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT, Uri.parse("package:${context.packageName}")))
-            }) { Text("Allow full-screen alarms") }
-        }
-        if (!exactOk) {
-            Text("Exact alarms are off, so alarms may ring late.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            FilledTonalButton(onClick = {
-                open(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:${context.packageName}")))
-            }) { Text("Allow exact alarms") }
-        }
+        TextButton(onClick = {
+            AlarmService.scheduleTest(context)
+            toastOnMain(context, "Test alarm in 10 seconds. Lock your phone now.")
+        }) { Text("Test alarm (rings in 10 s)") }
     }
 }
 

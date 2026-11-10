@@ -9,6 +9,39 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material.icons.outlined.Snooze
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.exosynk.planr.ui.theme.Danger
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -70,7 +103,16 @@ class AlarmRingActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        // Show over the lock screen and switch the display on (manifest attributes alone
+        // aren't honoured by every launcher/OEM, so set them in code too).
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // True full screen: hide status and navigation bars (swipe to peek).
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
         setContent {
             PlanrTheme {
                 BackHandler { /* use Snooze or Dismiss */ }
@@ -102,55 +144,172 @@ class AlarmRingActivity : ComponentActivity() {
 
 @Composable
 private fun RingScreen(ring: AlarmService.Ring, onSnooze: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
     var solving by remember(ring.id) { mutableStateOf(false) }
-    Column(
-        Modifier.fillMaxSize().background(Color.Black).safeDrawingPadding().padding(28.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Icon(
-            if (ring.kind == AlarmService.Kind.ALARM) Icons.Outlined.Alarm else Icons.Outlined.Notifications,
-            contentDescription = null,
-            tint = Accent,
-        )
-        Gap(16.dp)
-        if (ring.kind == AlarmService.Kind.ALARM) {
-            Text(ring.title, style = MaterialTheme.typography.displayLarge, color = Color.White)
-            Text(ring.subtitle, style = MaterialTheme.typography.titleLarge, color = Color.White.copy(alpha = 0.8f))
-        } else {
-            Text("Reminder", color = Accent)
-            Text(ring.title, style = MaterialTheme.typography.headlineMedium, color = Color.White, textAlign = TextAlign.Center)
-            if (ring.subtitle != "Reminder") {
-                Text(ring.subtitle, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
-            }
+    var now by remember { mutableStateOf(Date()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            now = Date()
+            kotlinx.coroutines.delay(1_000)
         }
-        Gap(48.dp)
-        if (solving) {
-            MathDismiss(onSolved = onDismiss)
-        } else {
-            if (ring.canSnooze) {
-                OutlinedButton(onClick = onSnooze, modifier = Modifier.fillMaxWidth().height(56.dp)) {
-                    Text(
-                        "Snooze ${ring.snoozeMinutes} min" +
-                            (ring.snoozesLeft?.let { " · $it left" } ?: ""),
-                    )
-                }
-                Gap(12.dp)
-            }
-            Button(
-                onClick = { if (ring.challenge == DismissChallenge.MATH) solving = true else onDismiss() },
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-            ) {
-                Text(
-                    when {
-                        ring.kind == AlarmService.Kind.REMINDER -> "Complete"
-                        ring.challenge == DismissChallenge.MATH -> "Dismiss (solve 3 problems)"
-                        else -> "Dismiss"
-                    }
+    }
+    val pulse = rememberInfiniteTransition(label = "pulse")
+    val glow by pulse.animateFloat(
+        initialValue = 0.85f, targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(tween(1400), RepeatMode.Reverse), label = "glow",
+    )
+    val isReminder = ring.kind == AlarmService.Kind.REMINDER
+
+    Box(
+        Modifier.fillMaxSize().background(
+            Brush.verticalGradient(listOf(Color(0xFF1B2347), Color(0xFF0B0D14), Color.Black))
+        ),
+    ) {
+        Column(
+            Modifier.fillMaxSize().safeDrawingPadding().imePadding().padding(horizontal = 28.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+          Column(
+            Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+          ) {
+            Gap(32.dp)
+            Box(contentAlignment = Alignment.Center) {
+                Box(Modifier.size(88.dp).scale(glow).clip(CircleShape).background(Accent.copy(alpha = 0.18f)))
+                Icon(
+                    if (isReminder) Icons.Outlined.Notifications else Icons.Outlined.Alarm,
+                    contentDescription = null,
+                    tint = Accent,
+                    modifier = Modifier.size(36.dp),
                 )
             }
+            Gap(24.dp)
+            if (isReminder) {
+                Text("Reminder", color = Accent, style = MaterialTheme.typography.titleMedium)
+                Gap(8.dp)
+                Text(
+                    ring.title,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontSize = 32.sp),
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+                if (ring.subtitle != "Reminder") {
+                    Gap(8.dp)
+                    Text(ring.subtitle, color = Color.White.copy(alpha = 0.7f), textAlign = TextAlign.Center)
+                }
+                Gap(16.dp)
+                Text(DateFormat.getTimeInstance(DateFormat.SHORT).format(now), color = Color.White.copy(alpha = 0.6f))
+            } else {
+                Text(
+                    DateFormat.getTimeInstance(DateFormat.SHORT).format(now),
+                    fontSize = 84.sp,
+                    fontWeight = FontWeight.Thin,
+                    color = Color.White,
+                )
+                Text(
+                    DateFormat.getDateInstance(DateFormat.FULL).format(now),
+                    color = Color.White.copy(alpha = 0.65f),
+                )
+                Gap(20.dp)
+                Text(ring.subtitle, style = MaterialTheme.typography.titleLarge, color = Color.White, textAlign = TextAlign.Center)
+            }
+            ring.contact?.let { c ->
+                Gap(24.dp)
+                Button(
+                    onClick = {
+                        com.exosynk.planr.reminder.ContactActions.intent(context, c)?.let {
+                            runCatching { context.startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                        }
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Success, contentColor = Color.Black),
+                    modifier = Modifier.height(56.dp),
+                ) {
+                    Icon(Icons.Outlined.Call, null)
+                    Text("  ${c.action.verb} ${c.name}")
+                }
+            }
+            Gap(24.dp)
+            if (solving) MathDismiss(onSolved = onDismiss)
+          }
+            if (!solving) {
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 32.dp),
+                    horizontalArrangement = if (ring.canSnooze) Arrangement.SpaceBetween else Arrangement.Center,
+                ) {
+                    SwipeCircle(
+                        icon = Icons.Default.Close,
+                        label = when {
+                            isReminder -> "Complete"
+                            ring.challenge == DismissChallenge.MATH -> "Dismiss (math)"
+                            else -> "Dismiss"
+                        },
+                        color = Danger,
+                        onTriggered = { if (ring.challenge == DismissChallenge.MATH) solving = true else onDismiss() },
+                    )
+                    if (ring.canSnooze) {
+                        SwipeCircle(
+                            icon = Icons.Outlined.Snooze,
+                            label = "Snooze ${ring.snoozeMinutes}m" + (ring.snoozesLeft?.let { " · $it" } ?: ""),
+                            color = Accent,
+                            onTriggered = onSnooze,
+                        )
+                    }
+                }
+            }
         }
+    }
+}
+
+/**
+ * Samsung-style control: drag the circle out in any direction to trigger it.
+ * (Accessibility services can still activate it with a plain click.)
+ */
+@Composable
+private fun SwipeCircle(icon: ImageVector, label: String, color: Color, onTriggered: () -> Unit) {
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val threshold = with(density) { 90.dp.toPx() }
+    var drag by remember { mutableStateOf(Offset.Zero) }
+    var fired by remember { mutableStateOf(false) }
+    val distance = drag.getDistance()
+    val progress = (distance / threshold).coerceIn(0f, 1f)
+    val animatedRadius by animateDpAsState(with(density) { (36.dp.toPx() + distance).toDp() }, label = "radius")
+
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            Modifier.size(150.dp, 170.dp).pointerInput(Unit) {
+                detectDragGestures(
+                    onDragEnd = {
+                        if (!fired && drag.getDistance() >= threshold) {
+                            fired = true
+                            onTriggered()
+                        }
+                        drag = Offset.Zero
+                    },
+                    onDragCancel = { drag = Offset.Zero },
+                ) { change, amount ->
+                    change.consume()
+                    drag += amount
+                }
+            }.semantics {
+                contentDescription = label
+                onClick { onTriggered(); true }
+            },
+            contentAlignment = Alignment.Center,
+        ) {
+            Box(
+                Modifier.requiredSize(animatedRadius * 2).clip(CircleShape)
+                    .background(color.copy(alpha = 0.12f + 0.25f * progress))
+                    .border(2.dp, color.copy(alpha = 0.4f + 0.6f * progress), CircleShape),
+            )
+            Box(
+                Modifier.size(72.dp).clip(CircleShape).background(color),
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp)) }
+        }
+        Text(label, color = Color.White.copy(alpha = 0.8f))
+        Text("Swipe", color = Color.White.copy(alpha = 0.4f), style = MaterialTheme.typography.bodyMedium)
     }
 }
 

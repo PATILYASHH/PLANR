@@ -29,6 +29,14 @@ five modules that work together: **Habit** (mindful pauses, focus, schedules and
 | **Uninstall protection** | Optional device admin with no policies, so PLANR can't be deleted on impulse. |
 | **Privacy** | No internet permission. No content or keystroke reading. All data stays on the device. |
 
+## Today & smart input (v0.5)
+
+| | |
+|---|---|
+| **Today** | Week/month calendar with reminders, notes and alarms per day; day agenda; quick actions. |
+| **Smart input** | “call to parth at 9 am”, “wake me at 6:30 weekdays”, “note: …”. Understands dates, times, repeats and relative times offline; matches names to contacts and adds a Call/Message/WhatsApp button. |
+| **Full-screen alarms** | Wakes the screen and fills it; setup checklist and a 10-second test alarm. |
+
 ## Planner modules (v0.4)
 
 | | |
@@ -67,7 +75,7 @@ Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest    # schedules, lockdown, XP, alarms, reminders, routines, backup
+./gradlew testDebugUnitTest    # schedules, lockdown, XP, alarms, reminders, routines, smart parser, calendar, backup
 ```
 
 ## First run
@@ -95,7 +103,8 @@ app/src/main/java/com/exosynk/planr/
 ├── reminder/                    reminders & categories: scheduler, receiver, screens
 ├── notes/                       notes & checklists
 ├── routine/                     routines: model/codec, engine (triggers, actions, undo), screens
-├── today/                       cross-module Today summary and card
+├── today/                       Today hub: calendar model and screen, cross-module summary
+├── smart/                       smart input parser, contact lookup, smart bar and contact bar
 ├── data/                        Room DB, Off-Grid/settings/progress stores, stats, backup
 ├── admin/                       optional uninstall protection
 ├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, routines, notifications

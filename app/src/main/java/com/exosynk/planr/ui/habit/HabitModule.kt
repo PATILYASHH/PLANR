@@ -16,6 +16,7 @@ import com.exosynk.planr.ui.screens.SchedulesScreen
 import com.exosynk.planr.ui.screens.ShieldsScreen
 
 val HABIT_TABS = listOf("Home", "Shields", "Focus", "Schedules", "Off-Grid")
+const val HABIT_FOCUS = 2
 const val HABIT_OFFGRID = 4
 
 /**
@@ -29,8 +30,6 @@ fun HabitModule(
     onTab: (Int) -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
-    onOpenModule: (Int) -> Unit,
-    onOpenReminder: (Long) -> Unit,
 ) {
     Column(modifier.fillMaxSize()) {
         ScrollableTabRow(
@@ -49,8 +48,6 @@ fun HabitModule(
                 onGoOffGrid = { onTab(HABIT_OFFGRID) },
                 onOpenInsights = onOpenInsights,
                 onOpenSettings = onOpenSettings,
-                onOpenModule = onOpenModule,
-                onOpenReminder = onOpenReminder,
             )
             1 -> ShieldsScreen(m)
             2 -> FocusScreen(m)

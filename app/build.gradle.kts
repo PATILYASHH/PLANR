@@ -5,8 +5,8 @@ plugins {
 }
 
 // Release CI passes -PplanrVersionName=1.2.3 -PplanrVersionCode=10203 from the git tag.
-val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.4.0"
-val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 400
+val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.5.0"
+val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 500
 
 // Release signing comes from environment variables (GitHub secrets). Without them,
 // release builds fall back to the debug key so CI still produces an installable APK.

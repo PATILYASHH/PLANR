@@ -20,6 +20,12 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <!-- Alarm screen opens instantly even while another app is in use -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Alarm clock apps may ask to be exempt from battery optimization -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Smart reminders: match "call Parth" to a contact (read on-device only) -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
     <!-- Routines: media volume -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 

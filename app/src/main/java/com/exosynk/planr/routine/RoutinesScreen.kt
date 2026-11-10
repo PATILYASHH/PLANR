@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.PlayArrow
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilledTonalButton
@@ -45,7 +46,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @Composable
-fun RoutinesScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
+fun RoutinesScreen(modifier: Modifier, onEdit: (Long) -> Unit, onBack: (() -> Unit)? = null) {
+    if (onBack != null) androidx.activity.compose.BackHandler(onBack = onBack)
     val app = PlanrApp.instance
     val context = LocalContext.current
     val routines by app.db.routineDao().observeAll().collectAsState(initial = emptyList())
@@ -74,6 +76,11 @@ fun RoutinesScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
+                if (onBack != null) {
+                    androidx.compose.material3.IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
                 ModuleHeader("Routines", "If this happens, then PLANR does that, and can undo it afterwards.")
                 if (!serviceOn) {
                     Gap(8.dp)
