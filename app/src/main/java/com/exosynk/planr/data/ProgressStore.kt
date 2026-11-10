@@ -50,6 +50,8 @@ class ProgressStore(context: Context) {
             putInt("focusBlocks", st.focusBlocks)
             putInt("focusMin", st.focusMinutes)
             putInt("resists", st.resists)
+            putInt("remindersDone", st.remindersCompleted)
+            putInt("wakeUps", st.wakeUpsNoSnooze)
             putStringSet("unlocked", s.unlocked.map { (k, v) -> "$k@$v" }.toSet())
         }
         _state.value = s
@@ -67,6 +69,8 @@ class ProgressStore(context: Context) {
             focusBlocks = prefs.getInt("focusBlocks", 0),
             focusMinutes = prefs.getInt("focusMin", 0),
             resists = prefs.getInt("resists", 0),
+            remindersCompleted = prefs.getInt("remindersDone", 0),
+            wakeUpsNoSnooze = prefs.getInt("wakeUps", 0),
         )
         val unlocked = prefs.getStringSet("unlocked", emptySet()).orEmpty().mapNotNull { entry ->
             val name = entry.substringBefore('@')

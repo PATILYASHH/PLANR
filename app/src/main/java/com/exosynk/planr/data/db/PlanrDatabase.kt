@@ -15,6 +15,18 @@ import androidx.room.TypeConverters
 import androidx.room.Upsert
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.exosynk.planr.alarm.Alarm
+import com.exosynk.planr.alarm.AlarmDao
+import com.exosynk.planr.alarm.AlarmGroup
+import com.exosynk.planr.alarm.AlarmGroupDao
+import com.exosynk.planr.notes.Note
+import com.exosynk.planr.notes.NoteDao
+import com.exosynk.planr.reminder.Reminder
+import com.exosynk.planr.reminder.ReminderCategory
+import com.exosynk.planr.reminder.ReminderCategoryDao
+import com.exosynk.planr.reminder.ReminderDao
+import com.exosynk.planr.routine.Routine
+import com.exosynk.planr.routine.RoutineDao
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -123,8 +135,11 @@ class Converters {
 }
 
 @Database(
-    entities = [ShieldRule::class, Schedule::class, OffGridSession::class, DailyUsage::class],
-    version = 3,
+    entities = [
+        ShieldRule::class, Schedule::class, OffGridSession::class, DailyUsage::class,
+        AlarmGroup::class, Alarm::class, ReminderCategory::class, Reminder::class, Note::class, Routine::class,
+    ],
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -133,6 +148,12 @@ abstract class PlanrDatabase : RoomDatabase() {
     abstract fun scheduleDao(): ScheduleDao
     abstract fun offGridDao(): OffGridSessionDao
     abstract fun dailyUsageDao(): DailyUsageDao
+    abstract fun alarmDao(): AlarmDao
+    abstract fun alarmGroupDao(): AlarmGroupDao
+    abstract fun reminderDao(): ReminderDao
+    abstract fun reminderCategoryDao(): ReminderCategoryDao
+    abstract fun noteDao(): NoteDao
+    abstract fun routineDao(): RoutineDao
 
     companion object {
         /** v0.2 → v0.3: per-app open limit and daily usage history. Keeps all user data. */
@@ -149,11 +170,27 @@ abstract class PlanrDatabase : RoomDatabase() {
             }
         }
 
+        /** v0.3 → v0.4: planner modules (alarms, reminders, notes, routines). SQL matches schemas/4.json. */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                MIGRATION_3_4_SQL.forEach { db.execSQL(it) }
+            }
+        }
+
         fun build(context: Context): PlanrDatabase =
             Room.databaseBuilder(context, PlanrDatabase::class.java, "planr.db")
-                .addMigrations(MIGRATION_2_3)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
                 // Only the v0.1 schema (never shipped as a release) is dropped.
                 .fallbackToDestructiveMigrationFrom(true, 1)
                 .build()
     }
 }
+
+internal val MIGRATION_3_4_SQL = listOf(
+    "CREATE TABLE IF NOT EXISTS `alarm_groups` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS `alarms` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `label` TEXT NOT NULL, `hour` INTEGER NOT NULL, `minute` INTEGER NOT NULL, `daysMask` INTEGER NOT NULL, `date` TEXT, `enabled` INTEGER NOT NULL, `groupId` INTEGER, `skippedAt` INTEGER NOT NULL, `sound` TEXT, `volume` INTEGER NOT NULL, `gradualVolume` INTEGER NOT NULL, `vibrate` INTEGER NOT NULL, `vibrationPattern` TEXT NOT NULL, `snoozeEnabled` INTEGER NOT NULL, `snoozeMinutes` INTEGER NOT NULL, `snoozeRepeat` INTEGER NOT NULL, `readAloud` INTEGER NOT NULL, `dismissChallenge` TEXT NOT NULL, `morningBrief` INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS `reminder_categories` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `color` INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS `reminders` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `notes` TEXT NOT NULL, `dueAt` INTEGER, `allDay` INTEGER NOT NULL, `repeat` TEXT NOT NULL, `earlyMinutes` INTEGER NOT NULL, `categoryId` INTEGER, `pinned` INTEGER NOT NULL, `alertStyle` TEXT NOT NULL, `completed` INTEGER NOT NULL, `completedAt` INTEGER, `noteId` INTEGER, `snoozedUntil` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS `notes` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `title` TEXT NOT NULL, `body` TEXT NOT NULL, `checklist` TEXT NOT NULL, `isChecklist` INTEGER NOT NULL, `color` INTEGER NOT NULL, `pinned` INTEGER NOT NULL, `archived` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS `routines` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `enabled` INTEGER NOT NULL, `trigger` TEXT NOT NULL, `actions` TEXT NOT NULL, `undoOnEnd` INTEGER NOT NULL, `lastRunAt` INTEGER NOT NULL)",
+)

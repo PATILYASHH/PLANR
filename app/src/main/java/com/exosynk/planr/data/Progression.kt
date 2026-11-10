@@ -15,6 +15,9 @@ data class ProgressStats(
     val focusMinutes: Int = 0,
     /** Times the user chose "Close" on a shield or gateway pause. */
     val resists: Int = 0,
+    val remindersCompleted: Int = 0,
+    /** Alarms dismissed without snoozing. */
+    val wakeUpsNoSnooze: Int = 0,
 ) {
     val level: Int get() = Progression.levelFor(xp)
 }
@@ -30,6 +33,8 @@ enum class Achievement(val title: String, val description: String, val check: (P
     FOCUS_50H("Flow state", "Focus for 50 hours in total", { it.focusMinutes >= 3000 }),
     RESIST_10("Not today", "Close a shielded app 10 times", { it.resists >= 10 }),
     RESIST_100("Iron will", "Close a shielded app 100 times", { it.resists >= 100 }),
+    TASKS_25("Getting it done", "Complete 25 reminders", { it.remindersCompleted >= 25 }),
+    EARLY_BIRD("Early bird", "Get up 7 times without hitting snooze", { it.wakeUpsNoSnooze >= 7 }),
     LEVEL_5("Level 5", "Reach level 5", { it.level >= 5 }),
     LEVEL_10("Level 10", "Reach level 10", { it.level >= 10 }),
 }
@@ -41,6 +46,8 @@ object Progression {
     const val XP_PER_FOCUS_MINUTE = 1
     const val XP_PER_RESIST = 5
     const val XP_STREAK_BONUS = 10
+    const val XP_PER_REMINDER = 2
+    const val XP_PER_WAKE_UP = 5
 
     /** Total XP needed to reach [level]: 0, 100, 300, 600, 1000, … */
     fun xpForLevel(level: Int): Int = 50 * level * (level - 1)
@@ -90,6 +97,13 @@ object Progression {
 
     fun resisted(s: ProgressStats): ProgressStats =
         s.copy(xp = s.xp + XP_PER_RESIST, resists = s.resists + 1)
+
+    fun reminderCompleted(s: ProgressStats): ProgressStats =
+        s.copy(xp = s.xp + XP_PER_REMINDER, remindersCompleted = s.remindersCompleted + 1)
+
+    /** Waking up without snoozing earns XP; snoozing earns nothing (but costs nothing). */
+    fun wokeUp(s: ProgressStats, noSnooze: Boolean): ProgressStats =
+        if (!noSnooze) s else s.copy(xp = s.xp + XP_PER_WAKE_UP, wakeUpsNoSnooze = s.wakeUpsNoSnooze + 1)
 
     /** Achievements earned by [s] that aren't in [already]. */
     fun newlyUnlocked(s: ProgressStats, already: Set<String>): List<Achievement> =

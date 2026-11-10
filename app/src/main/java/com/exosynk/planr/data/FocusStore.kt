@@ -36,6 +36,9 @@ class FocusStore(context: Context) {
     /** Called once for every focus block that runs to completion (argument: its minutes). */
     @Volatile var onFocusBlockDone: ((Int) -> Unit)? = null
 
+    /** Called when a whole session (all blocks) finishes on its own. */
+    @Volatile var onSessionDone: (() -> Unit)? = null
+
     fun start(focusMinutes: Int, breakMinutes: Int, cycles: Int, blocked: Set<String>) {
         val s = rolledToToday(_state.value)
         write(
@@ -83,6 +86,7 @@ class FocusStore(context: Context) {
         }
         if (changed) write(s)
         finishedBlocks.forEach { onFocusBlockDone?.invoke(it) }
+        if (finishedBlocks.isNotEmpty() && !s.active) onSessionDone?.invoke()
         return s
     }
 

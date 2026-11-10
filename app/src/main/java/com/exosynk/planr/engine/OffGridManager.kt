@@ -5,6 +5,8 @@ import android.content.Intent
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.data.OffGridState
 import com.exosynk.planr.data.Progression
+import com.exosynk.planr.routine.RoutineEngine
+import com.exosynk.planr.routine.RoutineEvent
 import com.exosynk.planr.data.UnlockChallenge
 import com.exosynk.planr.data.db.OffGridSession
 import com.exosynk.planr.ui.lock.LockActivity
@@ -31,6 +33,7 @@ object OffGridManager {
         app.offGrid.start(id, durationMs, extraAllowed, allowCamera, challenge)
         showLock(context)
         PlanrWidget.refresh(context)
+        RoutineEngine.post(RoutineEvent.OffGridStarted)
     }
 
     /** User passed the unlock challenge. */
@@ -65,6 +68,7 @@ object OffGridManager {
                 )
             }
             PlanrWidget.refresh(app)
+            RoutineEngine.post(RoutineEvent.OffGridEnded)
         }
     }
 

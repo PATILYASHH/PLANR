@@ -327,7 +327,7 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit) {
         SectionCard {
             Text("Backup & restore", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Save shields, schedules, settings, XP and Off-Grid history to a file you control. Nothing is uploaded.",
+                "Save alarms, reminders, notes, routines, shields, schedules, settings, XP and Off-Grid history to a file you control. Nothing is uploaded.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Gap(12.dp)
@@ -362,7 +362,7 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit) {
             onDismissRequest = { confirmRestore = null },
             title = { Text("Restore this backup?") },
             text = {
-                Text("Your current shields, schedules, settings, XP and Off-Grid history will be replaced.")
+                Text("Everything in PLANR (alarms, reminders, notes, routines, shields, schedules, settings, XP and Off-Grid history) will be replaced by the backup.")
             },
             confirmButton = {
                 TextButton(onClick = {

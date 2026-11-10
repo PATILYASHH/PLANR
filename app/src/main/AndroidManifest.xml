@@ -10,6 +10,19 @@
     <!-- Wind Down: optional Do-Not-Disturb, only after the user grants access -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
+    <!-- Alarm clock & reminders: exact alarms, ringing over the lock screen -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <!-- Routines: media volume -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
     <!-- Package visibility without QUERY_ALL_PACKAGES -->
     <queries>
         <intent>
@@ -28,6 +41,10 @@
         </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
+        </intent>
+        <!-- Read-aloud alarms -->
+        <intent>
+            <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
     </queries>
 
@@ -94,6 +111,33 @@
             </intent-filter>
         </receiver>
 
+        <!-- Ringing alarm / alarm-style reminder over the lock screen -->
+        <activity
+            android:name=".alarm.AlarmRingActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:taskAffinity="com.exosynk.planr.alarm"
+            android:theme="@style/Theme.Planr.Lock" />
+
+        <!-- Plays the alarm. systemExempted: allowed for apps with USE_EXACT_ALARM that ring alarms. -->
+        <service
+            android:name=".alarm.AlarmService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
+
+        <receiver
+            android:name=".alarm.AlarmReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".reminder.ReminderReceiver"
+            android:exported="false" />
+        <receiver
+            android:name=".routine.RoutineReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".ui.widget.PlanrWidget"
             android:exported="false"
@@ -112,6 +156,9 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
     </application>

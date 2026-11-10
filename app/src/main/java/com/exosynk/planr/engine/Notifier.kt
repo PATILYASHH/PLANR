@@ -20,6 +20,16 @@ object Notifier {
 
     private const val CH_REMINDERS = "reminders"
     private const val CH_PROGRESS = "progress"
+    const val CH_ALARMS = "alarms"
+    private const val CH_TASKS = "tasks"
+    private const val CH_ROUTINES = "routines"
+
+    const val RINGING_ID = 900
+    private const val ID_MISSED = 901
+    private const val ID_TODAY = 902
+    fun snoozedId(alarmId: Long) = 10_000 + (alarmId % 100_000).toInt()
+    fun reminderId(id: Long) = 200_000 + (id % 100_000).toInt()
+    private fun routineMsgId() = 300_000 + (System.currentTimeMillis() % 10_000).toInt()
 
     private const val ID_WIND_DOWN = 1001
     private const val ID_EYE_CARE = 1002
@@ -33,6 +43,17 @@ object Notifier {
                     .apply { description = "Wind Down and Eye Care reminders" },
                 NotificationChannel(CH_PROGRESS, "Achievements", NotificationManager.IMPORTANCE_LOW)
                     .apply { description = "Levels and achievements" },
+                // PLANR plays alarm sound and vibration itself, so the channel stays silent.
+                NotificationChannel(CH_ALARMS, "Alarms", NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = "Ringing alarms and alarm-style reminders"
+                    setSound(null, null)
+                    enableVibration(false)
+                    lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                },
+                NotificationChannel(CH_TASKS, "Reminders", NotificationManager.IMPORTANCE_HIGH)
+                    .apply { description = "Reminders you set in PLANR" },
+                NotificationChannel(CH_ROUTINES, "Routines", NotificationManager.IMPORTANCE_DEFAULT)
+                    .apply { description = "Messages and summaries from your routines" },
             )
         )
     }
@@ -65,6 +86,72 @@ object Notifier {
         }
     }
 
+    fun alarmSnoozed(context: Context, alarmId: Long, label: String, untilMs: Long) {
+        val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(untilMs))
+        post(
+            context, snoozedId(alarmId), CH_ALARMS, "$label snoozed", "Rings again at $time",
+            open = MainActivity.OPEN_ALARM,
+            ongoing = true,
+            actions = listOf(
+                "Dismiss" to android.app.PendingIntent.getBroadcast(
+                    context, 0,
+                    Intent(context, com.exosynk.planr.alarm.AlarmReceiver::class.java)
+                        .setAction(com.exosynk.planr.alarm.AlarmReceiver.ACTION_CANCEL_SNOOZE)
+                        .setData(android.net.Uri.parse("planr://alarm/$alarmId/cancel-snooze"))
+                        .putExtra(com.exosynk.planr.alarm.AlarmReceiver.EXTRA_ID, alarmId),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                ),
+            ),
+        )
+    }
+
+    fun missedAlarm(context: Context, label: String) =
+        post(context, ID_MISSED, CH_ALARMS, "Missed alarm", label, open = MainActivity.OPEN_ALARM)
+
+    fun reminder(context: Context, r: com.exosynk.planr.reminder.Reminder, early: Boolean) {
+        val rr = com.exosynk.planr.reminder.ReminderReceiver
+        val title = if (early) "Coming up: ${r.title}" else r.title
+        val text = if (early) {
+            "Due " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(r.dueAt ?: 0L))
+        } else {
+            r.notes.ifBlank { "Reminder" }
+        }
+        post(
+            context, reminderId(r.id), CH_TASKS, title, text,
+            open = MainActivity.OPEN_REMINDERS,
+            actions = listOf(
+                "Complete" to rr.action(context, rr.ACTION_COMPLETE, r.id),
+                "Snooze ${com.exosynk.planr.reminder.Reminders.SNOOZE_MINUTES} min" to rr.action(context, rr.ACTION_SNOOZE, r.id),
+            ),
+        )
+    }
+
+    fun routine(context: Context, text: String) =
+        post(context, routineMsgId(), CH_ROUTINES, "PLANR routine", text, open = MainActivity.OPEN_ROUTINES)
+
+    fun today(context: Context, text: String) =
+        post(context, ID_TODAY, CH_ROUTINES, "Your day", text, open = MainActivity.OPEN_HABIT)
+
+    /** Background apps can't open other apps, so a routine posts a tap-to-open notification instead. */
+    fun openApp(context: Context, packageName: String, launch: Intent) {
+        if (!canPost(context)) return
+        val label = runCatching {
+            context.packageManager.getApplicationLabel(context.packageManager.getApplicationInfo(packageName, 0)).toString()
+        }.getOrDefault(packageName)
+        val pi = PendingIntent.getActivity(
+            context, packageName.hashCode(), launch,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val n = NotificationCompat.Builder(context, CH_ROUTINES)
+            .setSmallIcon(R.drawable.ic_stat_planr)
+            .setContentTitle("Open $label")
+            .setContentText("Tap to open, from your routine")
+            .setContentIntent(pi)
+            .setAutoCancel(true)
+            .build()
+        runCatching { context.getSystemService(NotificationManager::class.java)?.notify(routineMsgId(), n) }
+    }
+
     private fun post(
         context: Context,
         id: Int,
@@ -72,11 +159,16 @@ object Notifier {
         title: String,
         text: String,
         timeoutMs: Long = 0L,
+        open: String? = null,
+        ongoing: Boolean = false,
+        actions: List<Pair<String, PendingIntent>> = emptyList(),
     ) {
         if (!canPost(context)) return
-        val open = PendingIntent.getActivity(
-            context, 0,
-            Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+        val openPi = PendingIntent.getActivity(
+            context, id,
+            Intent(context, MainActivity::class.java)
+                .apply { if (open != null) putExtra(MainActivity.EXTRA_OPEN, open) }
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val n = NotificationCompat.Builder(context, channel)
@@ -84,9 +176,13 @@ object Notifier {
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setContentIntent(open)
-            .setAutoCancel(true)
-            .apply { if (timeoutMs > 0) setTimeoutAfter(timeoutMs) }
+            .setContentIntent(openPi)
+            .setAutoCancel(!ongoing)
+            .setOngoing(ongoing)
+            .apply {
+                if (timeoutMs > 0) setTimeoutAfter(timeoutMs)
+                actions.forEach { (label, pi) -> addAction(0, label, pi) }
+            }
             .build()
         runCatching { context.getSystemService(NotificationManager::class.java)?.notify(id, n) }
     }

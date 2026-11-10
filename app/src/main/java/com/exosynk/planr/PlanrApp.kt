@@ -2,7 +2,12 @@ package com.exosynk.planr
 
 import android.app.Application
 import androidx.core.content.edit
+import com.exosynk.planr.alarm.AlarmScheduler
 import com.exosynk.planr.data.AppsRepository
+import com.exosynk.planr.reminder.Reminders
+import com.exosynk.planr.routine.RoutineEngine
+import com.exosynk.planr.routine.RoutineEvent
+import com.exosynk.planr.routine.RoutineScheduler
 import com.exosynk.planr.data.DailyCounters
 import com.exosynk.planr.data.FocusStore
 import com.exosynk.planr.data.OffGridStore
@@ -59,7 +64,10 @@ class PlanrApp : Application() {
         Notifier.createChannels(this)
         progress.onUnlocked = { Notifier.achievements(this, it) }
         focus.onFocusBlockDone = { minutes -> progress.update { Progression.focusBlockDone(it, minutes) } }
+        focus.onSessionDone = { RoutineEngine.post(RoutineEvent.FocusFinished) }
         seedProgressFromHistory()
+        // Re-register alarms, reminders and routine timers (also covers app updates and data restores).
+        appScope.launch { rescheduleEverything(this@PlanrApp) }
     }
 
     /** Upgrading from v0.2: give credit for Off-Grid sessions completed before XP existed. */
@@ -87,5 +95,11 @@ class PlanrApp : Application() {
     companion object {
         lateinit var instance: PlanrApp
             private set
+
+        suspend fun rescheduleEverything(context: android.content.Context) {
+            runCatching { AlarmScheduler.rescheduleAll(context) }
+            runCatching { Reminders.rescheduleAll(context) }
+            runCatching { RoutineScheduler.rescheduleAll(context) }
+        }
     }
 }

@@ -75,6 +75,16 @@ Status: ✅ shipped · 🔜 next phase · 💡 idea
 - ✅ XP, levels, achievements, home-screen widget
 - ✅ Backup / restore (JSON file)
 
+### Planner (v0.4)
+- ✅ Alarm module: groups, repeat/date, skip next, sound/volume/fade, vibration patterns, snooze, read aloud, math dismiss, morning brief
+- ✅ Reminders: categories, repeat, early alert, alarm-style alerts, pin, quick add
+- ✅ Notes: text/checklists, colours, pin, archive, search, linked reminders, Off-Grid quick notes
+- ✅ Routines: if-then with undo, time/alarm/charging/battery/headphones/app/Off-Grid/focus triggers
+- 🔜 Location-based reminders and routines (needs location permission; deliberately left out for now)
+- 🔜 Stopwatch, timer and world clock in Alarm
+- 🔜 Note images and attachments
+- 🔜 Bedtime alarm with sleep-sound and "wake-up check"
+
 ### New ideas beyond Zenith
 - 💡 AI intent check (on-device) before opening distracting apps
 - 💡 Accountability buddy approves early unlocks

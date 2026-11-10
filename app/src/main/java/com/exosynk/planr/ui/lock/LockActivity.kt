@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +50,7 @@ import com.exosynk.planr.ui.components.Gap
 import com.exosynk.planr.ui.theme.Accent
 import com.exosynk.planr.ui.theme.PlanrTheme
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.DateFormat
 import java.util.Date
 
@@ -131,6 +133,8 @@ private fun LockContent(
     onUnlockClick: () -> Unit,
 ) {
     val app = PlanrApp.instance
+    var noting by remember { mutableStateOf(false) }
+    if (noting) QuickNoteDialog { noting = false }
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier.fillMaxSize(),
@@ -154,6 +158,7 @@ private fun LockContent(
                 color = Color.White.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
             )
+            NextAlarmLine()
             Gap(48.dp)
 
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -165,6 +170,7 @@ private fun LockContent(
                         launch(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
                     }
                 }
+                RoundAction(Icons.Outlined.EditNote, "Note") { noting = true }
             }
             if (state.extraAllowed.isNotEmpty()) {
                 Gap(24.dp)
@@ -200,4 +206,54 @@ private fun RoundAction(icon: ImageVector, label: String, onClick: () -> Unit) {
 internal fun formatHms(ms: Long): String {
     val s = (ms / 1000).coerceAtLeast(0)
     return "%d:%02d:%02d".format(s / 3600, (s % 3600) / 60, s % 60)
+}
+
+/** Shows the next alarm so you know Off-Grid won't make you oversleep. */
+@Composable
+private fun NextAlarmLine() {
+    val app = PlanrApp.instance
+    val alarms by app.db.alarmDao().observeAll().collectAsState(initial = emptyList())
+    val groups by app.db.alarmGroupDao().observeAll().collectAsState(initial = emptyList())
+    val next = com.exosynk.planr.alarm.Alarms.nextOf(alarms, groups) ?: return
+    Gap(16.dp)
+    Text(
+        "⏰ " + next.second.toLocalTime().format(
+            java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT)
+        ) + (if (next.first.label.isNotBlank()) " · ${next.first.label}" else ""),
+        color = Color.White.copy(alpha = 0.6f),
+    )
+}
+
+/**
+ * Off-Grid idea capture: write the thought down instead of reaching for an app.
+ * Saved to Notes (pinned), so it's waiting when you're back.
+ */
+@Composable
+private fun QuickNoteDialog(onDismiss: () -> Unit) {
+    val app = PlanrApp.instance
+    var text by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Jot it down") },
+        text = {
+            androidx.compose.material3.OutlinedTextField(
+                value = text,
+                onValueChange = { text = it.take(2000) },
+                placeholder = { Text("A thought, a to-do, something to look up later…") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        },
+        confirmButton = {
+            TextButton(enabled = text.isNotBlank(), onClick = {
+                val body = text.trim()
+                app.appScope.launch {
+                    app.db.noteDao().upsert(
+                        com.exosynk.planr.notes.Note(title = "Off-Grid thought", body = body, pinned = true)
+                    )
+                }
+                onDismiss()
+            }) { Text("Save to Notes") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
 }

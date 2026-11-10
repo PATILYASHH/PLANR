@@ -46,6 +46,7 @@ import com.exosynk.planr.data.Achievement
 import com.exosynk.planr.data.Progression
 import com.exosynk.planr.data.db.OffGridSession
 import com.exosynk.planr.engine.PlanrAccessibilityService
+import com.exosynk.planr.today.TodayCard
 import com.exosynk.planr.ui.components.AppRow
 import com.exosynk.planr.ui.components.Gap
 import com.exosynk.planr.ui.components.SectionCard
@@ -62,6 +63,8 @@ fun HomeScreen(
     onGoOffGrid: () -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenModule: (Int) -> Unit,
+    onOpenReminder: (Long) -> Unit,
 ) {
     val app = PlanrApp.instance
     val context = LocalContext.current
@@ -85,7 +88,7 @@ fun HomeScreen(
             Column(Modifier.weight(1f)) {
                 Text(greeting(), style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Plan your attention.",
+                    "Plan your day. Guard your attention.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -99,6 +102,9 @@ fun HomeScreen(
             SetupCard(accessibilityOn, usageOn)
             Gap(16.dp)
         }
+
+        TodayCard(onOpenModule, onOpenReminder)
+        Gap(16.dp)
 
         // Screen time today
         SectionCard {
