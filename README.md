@@ -9,18 +9,24 @@ before distracting apps, schedules, daily limits, and **Off-Grid Mode**, which
 locks the whole phone down to calls, camera and a few apps you choose for a set
 time.
 
-## Features (v0.2)
+## Features (v0.3)
 
 | | |
 |---|---|
-| **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera optional, up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
+| **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera is optional, and you can keep up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
 | **Early-unlock step** | Pick one per session: typing challenge, 10-minute cooldown, or 10 math problems in a row. Early exits break your streak. |
-| **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily limit, and a pass window after you continue. |
+| **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily time limit, daily **open limit**, and a pass window after you continue. |
+| **Mindful Gateway** | Optional pause before *every* app you open, with a skip list. |
+| **Emergency passes** | 0–5 per day to open an app that's over its limit or blocked by a schedule or focus block. Never during Off-Grid. |
+| **Lockdown** | Hours when rules can only get stricter. It can also block Android Settings. |
 | **Scheduled Off-Grid** | Recurring Off-Grid windows. The **Bedtime** template locks the phone 11 PM – 7 AM every night. |
+| **Wind Down & Eye Care** | Bedtime reminder with optional auto Do Not Disturb, and 20-20-20 eye breaks. |
 | **Focus (Pomodoro)** | 25/50/90-minute focus blocks with breaks. Chosen apps (your shields by default) are blocked during focus and open again on breaks. |
 | **Schedules** | Block-list or allow-list by time and weekday, including overnight ranges. |
+| **Insights** | 5-week heatmap, weekly top apps, 14-day history per app, XP, levels and achievements. |
+| **Widget** | Screen time or Off-Grid end time, plus level, streak and focus time. |
+| **Backup & restore** | Export to and import from a JSON file you control. |
 | **Uninstall protection** | Optional device admin with no policies, so PLANR can't be deleted on impulse. |
-| **Dashboard** | Today's screen time, top apps, Off-Grid streak and history. |
 | **Privacy** | No internet permission. No content or keystroke reading. All data stays on the device. |
 
 See [ROADMAP.md](ROADMAP.md) for the full plan (Pomodoro, bedtime, Reels
@@ -51,7 +57,7 @@ Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
 
 ```bash
 ./gradlew assembleDebug        # app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest    # schedule logic tests
+./gradlew testDebugUnitTest    # schedule, lockdown, XP and backup tests
 ```
 
 ## First run
@@ -74,10 +80,10 @@ reconnects after boot, it re-locks right away.
 ```
 app/src/main/java/com/exosynk/planr/
 ├── PlanrApp.kt                  service locator
-├── data/                        Room DB, Off-Grid store, apps repository
+├── data/                        Room DB, Off-Grid/settings/progress stores, stats, backup
 ├── admin/                       optional uninstall protection
-├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, usage, boot
-└── ui/                          Compose: screens, lock, intercept, components
+├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, routines, notifications
+└── ui/                          Compose: screens, lock, intercept, widget, components
 ```
 
 ## License

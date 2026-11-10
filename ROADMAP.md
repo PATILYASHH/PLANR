@@ -42,16 +42,16 @@ watchdog (for scheduled windows) are in place.
 
 ## Feature roadmap
 
-Status: ✅ in this MVP · 🔜 next phase · 💡 idea
+Status: ✅ shipped · 🔜 next phase · 💡 idea
 
 ### Interventions
 - ✅ **Shield (mindful pause)** — breathing pause + "why are you opening this?" before an app opens
 - ✅ **Delay** — configurable forced wait before Continue is enabled
 - ✅ **Daily limit** — hard block once today's usage passes a limit
 - ✅ **Pass window** — after continuing, app stays open for N minutes without re-prompting
-- 🔜 Open-count limit per day
-- 🔜 Emergency-use quota
-- 🔜 Mindful Gateway (pause before *every* non-whitelisted app)
+- ✅ Open-count limit per day
+- ✅ Emergency-use quota (emergency passes)
+- ✅ Mindful Gateway (pause before *every* non-whitelisted app)
 - 🔜 Pause Point missions (walk, QR/NFC scan, puzzles) for shields
 - 🔜 Reels/Shorts detection (block feeds, keep DMs)
 - 🔜 Website tracking & shielding in browsers
@@ -61,19 +61,19 @@ Status: ✅ in this MVP · 🔜 next phase · 💡 idea
 - ✅ **Off-Grid Mode** — see above
 - ✅ Scheduled Off-Grid (e.g. every night 11 PM–7 AM)
 - ✅ Bedtime template (Off-Grid schedule)
-- 🔜 Wind Down reminder + auto Do-Not-Disturb
+- ✅ Wind Down reminder + auto Do-Not-Disturb
 - ✅ Pomodoro focus/break cycles
-- 🔜 Lockdown (can't edit rules during set hours)
+- ✅ Lockdown (rules can only get stricter during set hours; optional Settings block)
 - 🔜 Grace period, Early kick, Session HUD overlay
-- 🔜 Eye Care 20-20-20 reminders
+- ✅ Eye Care 20-20-20 reminders
 
 ### Tracking & motivation
 - ✅ Today's screen time + top apps
 - ✅ Off-Grid history (completed vs ended early) and streak
-- 🔜 Weekly/monthly heatmap, per-app history
+- ✅ 5-week heatmap, per-app 14-day history
 - 🔜 Goals for productive apps, streaks per app
-- 🔜 XP, levels, achievements, home-screen widgets
-- 🔜 Backup / restore
+- ✅ XP, levels, achievements, home-screen widget
+- ✅ Backup / restore (JSON file)
 
 ### New ideas beyond Zenith
 - 💡 AI intent check (on-device) before opening distracting apps
@@ -92,17 +92,24 @@ com.exosynk.planr
 ├── admin/PlanrDeviceAdmin  optional uninstall protection
 ├── PlanrApp                 Application + simple service locator
 ├── data/
-│   ├── db/                  Room: ShieldRule, Schedule, OffGridSession
+│   ├── db/                  Room: ShieldRule, Schedule, OffGridSession, DailyUsage (migrated, not wiped)
 │   ├── OffGridStore         SharedPreferences (sync reads for the service)
-│   ├── PassStore            temporary "continue" passes
+│   ├── SettingsStore        Gateway, emergency passes, Lockdown, Wind Down, Eye Care
+│   ├── DailyCounters        opens per app and emergency passes used today
+│   ├── PassStore            temporary "continue" and emergency passes
+│   ├── Progression/ProgressStore  XP, levels, achievements
+│   ├── StatsRepository      daily usage history beyond Android's retention
+│   ├── Backup               JSON export/import
 │   └── AppsRepository       launchable apps, default dialer/camera
 ├── engine/
 │   ├── PlanrAccessibilityService   foreground watcher
 │   ├── Enforcer             decides: allow / lock / intercept / block
 │   ├── UsageHelper          UsageStatsManager queries
+│   ├── Routines + Notifier  Wind Down, DND, Eye Care, achievement notifications
 │   └── BootReceiver
 └── ui/
-    ├── MainActivity + nav   Home · Shields · Schedules · Off-Grid
+    ├── MainActivity + nav   Home · Shields · Focus · Schedules · Off-Grid (+ Settings, Insights)
+    ├── widget/PlanrWidget   home-screen widget
     ├── lock/LockActivity    Off-Grid lock screen + challenges
     └── intercept/InterceptActivity   shield pause / delay / limit
 ```

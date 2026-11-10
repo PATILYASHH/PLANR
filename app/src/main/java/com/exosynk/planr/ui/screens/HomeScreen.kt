@@ -16,10 +16,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.ErrorOutline
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -39,6 +42,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.admin.PlanrDeviceAdmin
+import com.exosynk.planr.data.Achievement
+import com.exosynk.planr.data.Progression
 import com.exosynk.planr.data.db.OffGridSession
 import com.exosynk.planr.engine.PlanrAccessibilityService
 import com.exosynk.planr.ui.components.AppRow
@@ -52,7 +57,12 @@ import kotlinx.coroutines.withContext
 import java.time.LocalTime
 
 @Composable
-fun HomeScreen(modifier: Modifier, onGoOffGrid: () -> Unit) {
+fun HomeScreen(
+    modifier: Modifier,
+    onGoOffGrid: () -> Unit,
+    onOpenInsights: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     val app = PlanrApp.instance
     val context = LocalContext.current
 
@@ -71,11 +81,18 @@ fun HomeScreen(modifier: Modifier, onGoOffGrid: () -> Unit) {
         modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
     ) {
         Gap(24.dp)
-        Text(greeting(), style = MaterialTheme.typography.headlineMedium)
-        Text(
-            "Plan your attention.",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(greeting(), style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    "Plan your attention.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onOpenSettings) {
+                Icon(Icons.Outlined.Settings, contentDescription = "Settings")
+            }
+        }
         Gap(20.dp)
 
         if (!accessibilityOn || !usageOn) {
@@ -102,6 +119,34 @@ fun HomeScreen(modifier: Modifier, onGoOffGrid: () -> Unit) {
                     Text(formatDuration(ms), style = MaterialTheme.typography.labelLarge)
                 }
             }
+            if (usageOn) {
+                TextButton(onClick = onOpenInsights) { Text("History & insights →") }
+            }
+        }
+        Gap(16.dp)
+
+        // Level / XP
+        val progress by app.progress.state.collectAsState()
+        val stats = progress.stats
+        SectionCard(onClick = onOpenInsights) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Level ${stats.level}", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+                Text(
+                    "${progress.unlocked.size}/${Achievement.entries.size} achievements",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Gap(8.dp)
+            LinearProgressIndicator(
+                progress = { Progression.levelProgress(stats.xp) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Gap(4.dp)
+            Text(
+                "${stats.xp} XP · ${Progression.xpForLevel(stats.level + 1) - stats.xp} XP to level ${stats.level + 1}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Gap(16.dp)
 
@@ -148,7 +193,6 @@ fun HomeScreen(modifier: Modifier, onGoOffGrid: () -> Unit) {
     }
 }
 
-/** Sessions completed in a row, most recent first; an early exit breaks it. */
 @Composable
 private fun AboutFooter() {
     val context = LocalContext.current
@@ -166,6 +210,7 @@ private fun AboutFooter() {
     }
 }
 
+/** Sessions completed in a row, most recent first; an early exit breaks it. */
 private fun streak(sessions: List<OffGridSession>): Int =
     sessions.filter { it.endedAt != null }.takeWhile { !it.endedEarly }.size
 

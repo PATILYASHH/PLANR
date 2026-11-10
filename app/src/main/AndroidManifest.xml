@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Wind Down / Eye Care reminders and achievements (local only) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Wind Down: optional Do-Not-Disturb, only after the user grants access -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
     <!-- Package visibility without QUERY_ALL_PACKAGES -->
     <queries>
@@ -88,6 +92,18 @@
             <intent-filter>
                 <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
             </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".ui.widget.PlanrWidget"
+            android:exported="false"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info" />
         </receiver>
 
         <receiver

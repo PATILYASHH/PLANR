@@ -2,4 +2,5 @@
 <resources>
     <string name="app_name">PLANR</string>
     <string name="accessibility_description">PLANR uses this service to see which app is in the foreground so it can show mindful pauses, enforce your schedules and keep Off-Grid Mode locked. PLANR does not read what you type, does not collect screen content and has no internet access.</string>
+    <string name="widget_description">Screen time, Off-Grid status, level and streak</string>
 </resources>

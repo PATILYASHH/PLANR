@@ -4,9 +4,11 @@ import android.content.Context
 import android.content.Intent
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.data.OffGridState
+import com.exosynk.planr.data.Progression
 import com.exosynk.planr.data.UnlockChallenge
 import com.exosynk.planr.data.db.OffGridSession
 import com.exosynk.planr.ui.lock.LockActivity
+import com.exosynk.planr.ui.widget.PlanrWidget
 import kotlinx.coroutines.launch
 
 /** Starts, ends and finalizes Off-Grid sessions. */
@@ -28,6 +30,7 @@ object OffGridManager {
         )
         app.offGrid.start(id, durationMs, extraAllowed, allowCamera, challenge)
         showLock(context)
+        PlanrWidget.refresh(context)
     }
 
     /** User passed the unlock challenge. */
@@ -49,7 +52,20 @@ object OffGridManager {
         if (!s.active) return
         app.offGrid.clear()
         val endedAt = if (early) System.currentTimeMillis() else s.endAt
-        app.appScope.launch { app.db.offGridDao().finish(s.sessionId, endedAt, early) }
+        app.appScope.launch {
+            val dao = app.db.offGridDao()
+            dao.finish(s.sessionId, endedAt, early)
+            val scheduled = dao.recent().firstOrNull { it.id == s.sessionId }?.scheduleId != null
+            app.progress.update {
+                Progression.offGridFinished(
+                    it,
+                    completed = !early,
+                    minutes = ((s.endAt - s.startAt) / 60_000L).toInt(),
+                    scheduled = scheduled,
+                )
+            }
+            PlanrWidget.refresh(app)
+        }
     }
 
     /** Packages usable during Off-Grid: system essentials, dialer, camera, user extras. */

@@ -5,8 +5,8 @@ plugins {
 }
 
 // Release CI passes -PplanrVersionName=1.2.3 -PplanrVersionCode=10203 from the git tag.
-val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.2.0"
-val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 200
+val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.3.0"
+val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 300
 
 // Release signing comes from environment variables (GitHub secrets). Without them,
 // release builds fall back to the debug key so CI still produces an installable APK.
@@ -83,5 +83,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
+    // Android's org.json is a stub in local unit tests; use the real one there.
+    testImplementation(libs.org.json)
     "ksp"(libs.androidx.room.compiler)
 }

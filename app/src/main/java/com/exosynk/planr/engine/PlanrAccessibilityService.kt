@@ -8,6 +8,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.ui.intercept.InterceptActivity
+import com.exosynk.planr.ui.widget.PlanrWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,9 +46,15 @@ class PlanrAccessibilityService : AccessibilityService() {
         // Watchdog: starts scheduled Off-Grid windows and advances Pomodoro
         // phases even when no window changes are happening.
         scope.launch(Dispatchers.Main) {
+            var ticks = 0L
             while (true) {
-                OffGridScheduler.tick(this@PlanrAccessibilityService, enforcer.schedules)
+                val ctx = this@PlanrAccessibilityService
+                OffGridScheduler.tick(ctx, enforcer.schedules)
                 app.focus.advance()
+                Routines.tick(ctx, app.settings.current)
+                if (ticks % WIDGET_EVERY_TICKS == 0L) PlanrWidget.refresh(ctx)
+                if (ticks % STATS_EVERY_TICKS == 0L) app.appScope.launch { runCatching { app.stats.sync() } }
+                ticks++
                 delay(TICK_MS)
             }
         }
@@ -118,6 +125,8 @@ class PlanrAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TICK_MS = 20_000L
+        private const val WIDGET_EVERY_TICKS = 15L // ~5 min
+        private const val STATS_EVERY_TICKS = 180L // ~1 h
 
         @Volatile var running = false
             private set

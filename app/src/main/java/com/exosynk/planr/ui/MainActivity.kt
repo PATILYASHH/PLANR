@@ -19,6 +19,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -28,10 +29,13 @@ import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.engine.OffGridManager
 import com.exosynk.planr.ui.screens.FocusScreen
 import com.exosynk.planr.ui.screens.HomeScreen
+import com.exosynk.planr.ui.screens.InsightsScreen
+import com.exosynk.planr.ui.screens.SettingsScreen
 import com.exosynk.planr.ui.screens.OffGridScreen
 import com.exosynk.planr.ui.screens.SchedulesScreen
 import com.exosynk.planr.ui.screens.ShieldsScreen
 import com.exosynk.planr.ui.theme.PlanrTheme
+import com.exosynk.planr.ui.widget.PlanrWidget
 import kotlinx.coroutines.launch
 
 private data class Tab(val label: String, val icon: ImageVector)
@@ -52,14 +56,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             PlanrTheme {
                 var tab by rememberSaveable { mutableIntStateOf(0) }
+                // Full-screen pages opened from Home; null = the tabbed UI.
+                var page by rememberSaveable { mutableStateOf<String?>(null) }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
                     bottomBar = {
                         NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
                             tabs.forEachIndexed { i, t ->
                                 NavigationBarItem(
-                                    selected = tab == i,
-                                    onClick = { tab = i },
+                                    selected = tab == i && page == null,
+                                    onClick = { tab = i; page = null },
                                     icon = { Icon(t.icon, contentDescription = t.label) },
                                     label = { Text(t.label) },
                                 )
@@ -68,12 +74,21 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { padding ->
                     val m = Modifier.padding(padding)
-                    when (tab) {
-                        0 -> HomeScreen(m, onGoOffGrid = { tab = 4 })
+                    when (page) {
+                        PAGE_SETTINGS -> SettingsScreen(m, onBack = { page = null })
+                        PAGE_INSIGHTS -> InsightsScreen(m, onBack = { page = null })
+                        else -> when (tab) {
+                        0 -> HomeScreen(
+                            m,
+                            onGoOffGrid = { tab = 4 },
+                            onOpenInsights = { page = PAGE_INSIGHTS },
+                            onOpenSettings = { page = PAGE_SETTINGS },
+                        )
                         1 -> ShieldsScreen(m)
                         2 -> FocusScreen(m)
                         3 -> SchedulesScreen(m)
                         else -> OffGridScreen(m)
+                        }
                     }
                 }
             }
@@ -87,5 +102,11 @@ class MainActivity : ComponentActivity() {
             OffGridManager.completeIfExpired()
             if (PlanrApp.instance.offGrid.isLocked()) OffGridManager.showLock(this@MainActivity)
         }
+        PlanrWidget.refresh(this)
+    }
+
+    private companion object {
+        const val PAGE_SETTINGS = "settings"
+        const val PAGE_INSIGHTS = "insights"
     }
 }

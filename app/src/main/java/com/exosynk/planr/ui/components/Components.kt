@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -31,6 +32,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +53,7 @@ import androidx.core.graphics.drawable.toBitmap
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.data.InstalledApp
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 private val iconCache = android.util.LruCache<String, ImageBitmap>(120)
@@ -202,3 +206,39 @@ fun formatClock(minuteOfDay: Int): String {
 
 @Composable
 fun Gap(h: Dp) = Spacer(Modifier.height(h))
+
+/** Lockdown state, re-checked every 30 s and whenever settings change. */
+@Composable
+fun rememberLockdown(): Boolean {
+    val settings by PlanrApp.instance.settings.state.collectAsState()
+    var now by remember { mutableStateOf(java.time.LocalDateTime.now()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            now = java.time.LocalDateTime.now()
+        }
+    }
+    return settings.isLockdown(now)
+}
+
+@Composable
+fun LockdownBanner(what: String = "Existing rules can't be edited, paused or removed") {
+    val settings by PlanrApp.instance.settings.state.collectAsState()
+    val end = settings.lockdownEndsAt()
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                "Lockdown is on" + (end?.let { " until ${formatClock(it.hour * 60 + it.minute)}" } ?: "") +
+                    ". $what until it ends.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+    }
+}

@@ -1,5 +1,6 @@
 package com.exosynk.planr.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.time.DayOfWeek
@@ -21,7 +22,26 @@ data class ShieldRule(
     /** After Continue, how long the app stays open without re-prompting. */
     val passMinutes: Int = 5,
     val enabled: Boolean = true,
+    /** Max times per day the user may continue past the pause (0 = unlimited). */
+    @ColumnInfo(defaultValue = "0") val dailyOpenLimit: Int = 0,
 )
+
+/** A limit of 0 means "none", so any positive limit is stricter than 0. */
+private fun limitAtLeastAsStrict(old: Int, new: Int): Boolean =
+    if (old <= 0) true else new in 1..old
+
+/**
+ * True if replacing this rule with [next] would block less. Lockdown only lets
+ * users tighten shields, never loosen them.
+ */
+fun ShieldRule.wouldLoosen(next: ShieldRule): Boolean = !(
+    (next.enabled || !enabled) &&
+        next.pauseSeconds >= pauseSeconds &&
+        next.delaySeconds >= delaySeconds &&
+        next.passMinutes <= passMinutes &&
+        limitAtLeastAsStrict(dailyLimitMinutes, next.dailyLimitMinutes) &&
+        limitAtLeastAsStrict(dailyOpenLimit, next.dailyOpenLimit)
+    )
 
 enum class ScheduleMode { BLOCK, ALLOW, OFFGRID }
 
@@ -95,4 +115,13 @@ data class OffGridSession(
     val endedEarly: Boolean = false,
     /** Set when the session was started by an Off-Grid schedule. */
     val scheduleId: Long? = null,
+)
+
+/** One app's foreground time on one day, kept so history outlives Android's usage-event retention. */
+@Entity(tableName = "daily_usage", primaryKeys = ["day", "packageName"])
+data class DailyUsage(
+    /** ISO date, e.g. 2026-11-10. */
+    val day: String,
+    val packageName: String,
+    val ms: Long,
 )
