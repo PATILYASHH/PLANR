@@ -163,6 +163,9 @@ object Backup {
                     put("pinned", r.pinned); put("alertStyle", r.alertStyle); put("completed", r.completed)
                     r.completedAt?.let { put("completedAt", it) }; r.noteId?.let { put("noteId", it) }
                     put("createdAt", r.createdAt)
+                    r.contactName?.let { put("contactName", it) }
+                    r.contactNumber?.let { put("contactNumber", it) }
+                    r.contactAction?.let { put("contactAction", it) }
                 })
             }
         })
@@ -264,6 +267,11 @@ object Backup {
                 completedAt = if (o.has("completedAt")) o.optLong("completedAt") else null,
                 noteId = if (o.has("noteId")) o.optLong("noteId").takeIf { it in noteIds } else null,
                 createdAt = o.optLong("createdAt", 0L),
+                contactName = o.optString("contactName", "").take(80).takeIf { it.isNotBlank() },
+                contactNumber = o.optString("contactNumber", "").take(40).takeIf { it.isNotBlank() },
+                contactAction = o.optString("contactAction", "").takeIf { v ->
+                    com.exosynk.planr.reminder.ContactAction.entries.any { it.name == v }
+                },
             )
         }.distinctBy { it.id }
         val routines = root.optJSONArray("routines").objects().mapNotNull { o ->

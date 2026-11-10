@@ -139,7 +139,7 @@ class Converters {
         ShieldRule::class, Schedule::class, OffGridSession::class, DailyUsage::class,
         AlarmGroup::class, Alarm::class, ReminderCategory::class, Reminder::class, Note::class, Routine::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -177,9 +177,18 @@ abstract class PlanrDatabase : RoomDatabase() {
             }
         }
 
+        /** v0.4 → v0.5: contact linked to a reminder ("Call Parth at 9"). */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE reminders ADD COLUMN contactName TEXT")
+                db.execSQL("ALTER TABLE reminders ADD COLUMN contactNumber TEXT")
+                db.execSQL("ALTER TABLE reminders ADD COLUMN contactAction TEXT")
+            }
+        }
+
         fun build(context: Context): PlanrDatabase =
             Room.databaseBuilder(context, PlanrDatabase::class.java, "planr.db")
-                .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                 // Only the v0.1 schema (never shipped as a release) is dropped.
                 .fallbackToDestructiveMigrationFrom(true, 1)
                 .build()

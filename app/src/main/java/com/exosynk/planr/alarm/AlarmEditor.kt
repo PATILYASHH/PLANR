@@ -59,7 +59,11 @@ fun AlarmEditor(modifier: Modifier, alarmId: Long, onDone: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(alarmId == 0L) }
-    var a by remember { mutableStateOf(Alarm(hour = 7, minute = 0)) }
+    // A new alarm may come pre-filled from the smart bar ("wake me at 6:30 weekdays").
+    var a by remember {
+        mutableStateOf((if (alarmId == 0L) com.exosynk.planr.smart.Drafts.alarm else null) ?: Alarm(hour = 7, minute = 0))
+    }
+    LaunchedEffect(Unit) { com.exosynk.planr.smart.Drafts.alarm = null }
     val groups by app.db.alarmGroupDao().observeAll().collectAsState(initial = emptyList())
 
     LaunchedEffect(alarmId) {

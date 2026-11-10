@@ -65,7 +65,10 @@ fun NoteEditor(
     val app = PlanrApp.instance
     val scope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(noteId <= 0L) }
-    var note by remember { mutableStateOf(Note(isChecklist = noteId == NEW_CHECKLIST)) }
+    var note by remember {
+        mutableStateOf((if (noteId == 0L) com.exosynk.planr.smart.Drafts.note else null) ?: Note(isChecklist = noteId == NEW_CHECKLIST))
+    }
+    LaunchedEffect(Unit) { com.exosynk.planr.smart.Drafts.note = null }
     var items by remember { mutableStateOf(if (noteId == NEW_CHECKLIST) listOf(ChecklistItem("")) else emptyList()) }
     var palette by remember { mutableStateOf(false) }
 

@@ -119,7 +119,15 @@ object Notifier {
         post(
             context, reminderId(r.id), CH_TASKS, title, text,
             open = MainActivity.OPEN_REMINDERS,
-            actions = listOf(
+            actions = listOfNotNull(
+                r.contact?.let { c ->
+                    com.exosynk.planr.reminder.ContactActions.intent(context, c)?.let { intent ->
+                        "${c.action.verb} ${c.name}" to PendingIntent.getActivity(
+                            context, reminderId(r.id), intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                        )
+                    }
+                },
                 "Complete" to rr.action(context, rr.ACTION_COMPLETE, r.id),
                 "Snooze ${com.exosynk.planr.reminder.Reminders.SNOOZE_MINUTES} min" to rr.action(context, rr.ACTION_SNOOZE, r.id),
             ),
@@ -130,7 +138,7 @@ object Notifier {
         post(context, routineMsgId(), CH_ROUTINES, "PLANR routine", text, open = MainActivity.OPEN_ROUTINES)
 
     fun today(context: Context, text: String) =
-        post(context, ID_TODAY, CH_ROUTINES, "Your day", text, open = MainActivity.OPEN_HABIT)
+        post(context, ID_TODAY, CH_ROUTINES, "Your day", text, open = MainActivity.OPEN_TODAY)
 
     /** Background apps can't open other apps, so a routine posts a tap-to-open notification instead. */
     fun openApp(context: Context, packageName: String, launch: Intent) {

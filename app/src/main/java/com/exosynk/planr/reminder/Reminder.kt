@@ -25,6 +25,14 @@ enum class Repeat(val title: String) {
     YEARLY("Every year"),
 }
 
+enum class ContactAction(val verb: String) {
+    CALL("Call"),
+    MESSAGE("Message"),
+    WHATSAPP("WhatsApp"),
+}
+
+data class ReminderContact(val name: String, val number: String, val action: ContactAction = ContactAction.CALL)
+
 enum class AlertStyle(val title: String) {
     NOTIFICATION("Notification"),
     ALARM("Alarm (full screen, rings)"),
@@ -52,7 +60,23 @@ data class Reminder(
     /** When snoozed, the next alert time (0 = not snoozed). */
     val snoozedUntil: Long = 0,
     val createdAt: Long = System.currentTimeMillis(),
+    /** Linked contact (e.g. "Call Parth"): adds a Call/Message button to the alert. */
+    val contactName: String? = null,
+    val contactNumber: String? = null,
+    /** [ContactAction] name. */
+    val contactAction: String? = null,
 ) {
+    val contact: ReminderContact?
+        get() {
+            val name = contactName ?: return null
+            val number = contactNumber ?: return null
+            val action = runCatching { ContactAction.valueOf(contactAction ?: "") }.getOrDefault(ContactAction.CALL)
+            return ReminderContact(name, number, action)
+        }
+
+    fun withContact(c: ReminderContact?): Reminder =
+        copy(contactName = c?.name, contactNumber = c?.number, contactAction = c?.action?.name)
+
     val repeatRule: Repeat get() = runCatching { Repeat.valueOf(repeat) }.getOrDefault(Repeat.NONE)
     val style: AlertStyle get() = runCatching { AlertStyle.valueOf(alertStyle) }.getOrDefault(AlertStyle.NOTIFICATION)
 

@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Alarm
-import androidx.compose.material.icons.outlined.AutoMode
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.automirrored.outlined.StickyNote2
 import androidx.compose.material.icons.outlined.TaskAlt
@@ -38,7 +38,11 @@ import com.exosynk.planr.reminder.ReminderEditor
 import com.exosynk.planr.reminder.RemindersScreen
 import com.exosynk.planr.routine.RoutineEditor
 import com.exosynk.planr.routine.RoutinesScreen
+import com.exosynk.planr.ui.habit.HABIT_FOCUS
+import com.exosynk.planr.ui.habit.HABIT_OFFGRID
 import com.exosynk.planr.ui.habit.HabitModule
+import com.exosynk.planr.today.TodayNav
+import com.exosynk.planr.today.TodayScreen
 import com.exosynk.planr.ui.screens.InsightsScreen
 import com.exosynk.planr.ui.screens.SettingsScreen
 import com.exosynk.planr.ui.theme.PlanrTheme
@@ -46,20 +50,20 @@ import com.exosynk.planr.ui.widget.PlanrWidget
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
-const val MODULE_HABIT = 0
-const val MODULE_ALARM = 1
-const val MODULE_REMINDERS = 2
-const val MODULE_NOTES = 3
-const val MODULE_ROUTINES = 4
+const val MODULE_TODAY = 0
+const val MODULE_HABIT = 1
+const val MODULE_ALARM = 2
+const val MODULE_REMINDERS = 3
+const val MODULE_NOTES = 4
 
 private data class Module(val label: String, val icon: ImageVector)
 
 private val modules = listOf(
+    Module("Today", Icons.Outlined.CalendarMonth),
     Module("Habit", Icons.Outlined.SelfImprovement),
     Module("Alarm", Icons.Outlined.Alarm),
     Module("Reminders", Icons.Outlined.TaskAlt),
     Module("Notes", Icons.AutoMirrored.Outlined.StickyNote2),
-    Module("Routines", Icons.Outlined.AutoMode),
 )
 
 /**
@@ -76,7 +80,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openRequest.value = intent?.getStringExtra(EXTRA_OPEN)
         setContent {
             PlanrTheme {
-                var module by rememberSaveable { mutableIntStateOf(MODULE_HABIT) }
+                var module by rememberSaveable { mutableIntStateOf(MODULE_TODAY) }
                 var habitTab by rememberSaveable { mutableIntStateOf(0) }
                 var page by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -87,13 +91,12 @@ class MainActivity : ComponentActivity() {
                         OPEN_ALARM -> module = MODULE_ALARM
                         OPEN_REMINDERS -> module = MODULE_REMINDERS
                         OPEN_NOTES -> module = MODULE_NOTES
-                        OPEN_ROUTINES -> module = MODULE_ROUTINES
                         OPEN_HABIT -> module = MODULE_HABIT
+                        OPEN_TODAY -> module = MODULE_TODAY
                     }
-                    page = null
+                    page = if (request == OPEN_ROUTINES) PAGE_ROUTINES else null
                     openRequest.value = null
                 }
-                val openModule: (Int) -> Unit = { module = it; page = null }
 
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
@@ -133,21 +136,35 @@ class MainActivity : ComponentActivity() {
                             onOpenReminder = { page = "reminder:$it" },
                             onDone = back,
                         )
-                        "routine" -> RoutineEditor(m, id, onDone = back)
+                        "routine" -> RoutineEditor(m, id, onDone = { page = PAGE_ROUTINES })
+                        PAGE_ROUTINES -> RoutinesScreen(m, onEdit = { page = "routine:$it" }, onBack = back)
                         else -> when (module) {
+                            MODULE_TODAY -> TodayScreen(
+                                m,
+                                TodayNav(
+                                    newAlarm = { page = "alarm:0" },
+                                    newReminder = { page = "reminder:0" },
+                                    newNote = { page = "note:0" },
+                                    openAlarm = { page = "alarm:$it" },
+                                    openReminder = { page = "reminder:$it" },
+                                    openNote = { page = "note:$it" },
+                                    focus = { module = MODULE_HABIT; habitTab = HABIT_FOCUS },
+                                    offGrid = { module = MODULE_HABIT; habitTab = HABIT_OFFGRID },
+                                    routines = { page = PAGE_ROUTINES },
+                                    habit = { module = MODULE_HABIT; habitTab = 0 },
+                                    settings = { page = PAGE_SETTINGS },
+                                ),
+                            )
                             MODULE_HABIT -> HabitModule(
                                 m,
                                 tab = habitTab,
                                 onTab = { habitTab = it },
                                 onOpenInsights = { page = PAGE_INSIGHTS },
                                 onOpenSettings = { page = PAGE_SETTINGS },
-                                onOpenModule = openModule,
-                                onOpenReminder = { page = "reminder:$it" },
                             )
                             MODULE_ALARM -> AlarmScreen(m, onEdit = { page = "alarm:$it" })
                             MODULE_REMINDERS -> RemindersScreen(m, onEdit = { page = "reminder:$it" })
-                            MODULE_NOTES -> NotesScreen(m, onOpen = { page = "note:$it" })
-                            else -> RoutinesScreen(m, onEdit = { page = "routine:$it" })
+                            else -> NotesScreen(m, onOpen = { page = "note:$it" })
                         }
                     }
                 }
@@ -173,6 +190,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_OPEN = "open"
         const val OPEN_HABIT = "habit"
+        const val OPEN_TODAY = "today"
         const val OPEN_ALARM = "alarm"
         const val OPEN_REMINDERS = "reminders"
         const val OPEN_NOTES = "notes"
@@ -180,5 +198,6 @@ class MainActivity : ComponentActivity() {
 
         private const val PAGE_SETTINGS = "settings"
         private const val PAGE_INSIGHTS = "insights"
+        private const val PAGE_ROUTINES = "routines"
     }
 }

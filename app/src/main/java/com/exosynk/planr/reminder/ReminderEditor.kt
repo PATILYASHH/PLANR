@@ -31,6 +31,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.notes.Note
+import com.exosynk.planr.smart.ContactBar
+import com.exosynk.planr.smart.SmartParser
+import com.exosynk.planr.smart.whenText
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Call
+import androidx.compose.material3.TextButton
 import com.exosynk.planr.ui.components.Chips
 import com.exosynk.planr.ui.components.EditorPage
 import com.exosynk.planr.ui.components.Gap
@@ -66,8 +74,12 @@ fun ReminderEditor(
     }
 
     LaunchedEffect(reminderId, fromNoteId) {
+        val draft = com.exosynk.planr.smart.Drafts.reminder
+        com.exosynk.planr.smart.Drafts.reminder = null
         if (reminderId != 0L) {
             app.db.reminderDao().get(reminderId)?.let { r = it }
+        } else if (draft != null) {
+            r = draft
         } else if (fromNoteId != null) {
             app.db.noteDao().get(fromNoteId)?.let { n: Note ->
                 r = r.copy(title = n.title.ifBlank { n.preview.lineSequence().firstOrNull().orEmpty() }.take(120), noteId = n.id)
@@ -107,8 +119,60 @@ fun ReminderEditor(
             value = r.title,
             onValueChange = { r = r.copy(title = it.take(120)) },
             label = { Text("Reminder") },
+            placeholder = { Text("e.g. Call Parth at 9 am tomorrow") },
             modifier = Modifier.fillMaxWidth(),
         )
+        // Smart: understand dates, times, repeats and "call/message someone" in the title.
+        val smart = remember(r.title) { SmartParser.parse(r.title) }
+        val smartAt = smart.at
+        val smartDiffers = smartAt != null && (r.dueAt == null || ReminderTime.toMillis(smartAt) != r.dueAt || smart.allDay != r.allDay)
+        if (smartDiffers || (smart.repeat != Repeat.NONE && smart.repeat != r.repeatRule)) {
+            Gap(6.dp)
+            AssistChip(
+                onClick = {
+                    r = r.copy(
+                        title = smart.title.ifBlank { r.title },
+                        dueAt = smartAt?.let { ReminderTime.toMillis(it) } ?: r.dueAt,
+                        allDay = if (smartAt != null) smart.allDay else r.allDay,
+                        repeat = if (smart.repeat != Repeat.NONE) smart.repeat.name else r.repeat,
+                    )
+                },
+                leadingIcon = { Icon(Icons.Default.AutoAwesome, null) },
+                label = {
+                    Text(
+                        "Set " + listOfNotNull(
+                            smartAt?.let { whenText(it, smart.allDay) },
+                            smart.repeat.takeIf { it != Repeat.NONE }?.title?.lowercase(),
+                        ).joinToString(", ") + " and tidy title",
+                    )
+                },
+            )
+        }
+        Gap(8.dp)
+        // Contact: from "call X" in the title, or linked by hand.
+        var linking by remember { mutableStateOf(false) }
+        val contactQuery = smart.contact?.nameQuery
+        when {
+            r.contact != null && !linking -> AssistChip(
+                onClick = { linking = true },
+                leadingIcon = { Icon(Icons.Outlined.Call, null) },
+                label = { Text("${r.contact!!.action.verb} ${r.contact!!.name} · ${r.contact!!.number}") },
+                trailingIcon = {
+                    Icon(Icons.Default.Close, contentDescription = "Remove contact",
+                        modifier = Modifier.clickable { r = r.withContact(null) })
+                },
+            )
+            contactQuery != null || linking -> ContactBar(
+                query = contactQuery ?: "",
+                action = smart.contact?.action ?: r.contact?.action ?: ContactAction.CALL,
+                selected = r.contact,
+                onSelect = { r = r.withContact(it); if (it != null) linking = false },
+            )
+            else -> TextButton(onClick = { linking = true }) {
+                Icon(Icons.Outlined.Call, null)
+                Text("  Link a contact (adds a Call button)")
+            }
+        }
         Gap(8.dp)
         OutlinedTextField(
             value = r.notes,

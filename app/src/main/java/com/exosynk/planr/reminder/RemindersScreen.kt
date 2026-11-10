@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -76,7 +75,6 @@ fun RemindersScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
     val categories by app.db.reminderCategoryDao().observeAll().collectAsState(initial = emptyList())
     var view by rememberSaveable { mutableStateOf(ReminderView.TODAY) }
     var category by rememberSaveable { mutableStateOf<Long?>(null) }
-    var quick by remember { mutableStateOf("") }
     var managing by remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
@@ -115,21 +113,9 @@ fun RemindersScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
                 }
                 Gap(8.dp)
                 if (view != ReminderView.COMPLETED) {
-                    OutlinedTextField(
-                        value = quick,
-                        onValueChange = { quick = it.take(120) },
-                        placeholder = { Text(if (view == ReminderView.TODAY) "Add a reminder for today" else "Add a reminder") },
-                        singleLine = true,
-                        trailingIcon = {
-                            IconButton(enabled = quick.isNotBlank(), onClick = {
-                                val title = quick.trim()
-                                quick = ""
-                                app.appScope.launch {
-                                    Reminders.save(context.applicationContext, quickReminder(title, view, category))
-                                }
-                            }) { Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Add") }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
+                    com.exosynk.planr.smart.SmartAddBar(
+                        placeholder = "Type it like you'd say it: “call Parth at 9 am”",
+                        onMoreOptions = { onEdit(0L) },
                     )
                     Gap(8.dp)
                 }
@@ -168,17 +154,6 @@ private fun ReminderView.matches(r: Reminder, today: LocalDate): Boolean {
         ReminderView.ANYTIME -> day == null
         else -> true
     }
-}
-
-/** Quick-add: "Today" reminders are due tonight at 9 PM (or in an hour if that's past). */
-private fun quickReminder(title: String, view: ReminderView, category: Long?): Reminder {
-    val due = if (view == ReminderView.TODAY) {
-        val now = java.time.LocalDateTime.now()
-        val evening = now.toLocalDate().atTime(21, 0)
-        val at = if (evening.isAfter(now.plusMinutes(30))) evening else now.plusHours(1).withSecond(0).withNano(0)
-        ReminderTime.toMillis(at)
-    } else null
-    return Reminder(title = title, dueAt = due, categoryId = category)
 }
 
 private fun emptyText(v: ReminderView) = when (v) {
