@@ -1,0 +1,9 @@
+PLANR
+Copyright 2026 ExoSynk Labs
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+It uses the following open-source software, each under the Apache License 2.0:
+- Kotlin and kotlinx.coroutines (JetBrains s.r.o. and contributors)
+- Android Jetpack: Compose, Material 3, Material Icons, Core, Activity, Lifecycle, Room
+  (The Android Open Source Project)

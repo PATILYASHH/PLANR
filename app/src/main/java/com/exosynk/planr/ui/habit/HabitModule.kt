@@ -30,6 +30,7 @@ fun HabitModule(
     onTab: (Int) -> Unit,
     onOpenInsights: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenAbout: () -> Unit,
 ) {
     Column(modifier.fillMaxSize()) {
         ScrollableTabRow(
@@ -48,6 +49,7 @@ fun HabitModule(
                 onGoOffGrid = { onTab(HABIT_OFFGRID) },
                 onOpenInsights = onOpenInsights,
                 onOpenSettings = onOpenSettings,
+                onOpenAbout = onOpenAbout,
             )
             1 -> ShieldsScreen(m)
             2 -> FocusScreen(m)
