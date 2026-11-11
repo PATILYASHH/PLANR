@@ -2,7 +2,7 @@
 
 All notable changes to PLANR. Full notes for each release are in [release-notes/](release-notes/) and on the [Releases](https://github.com/PATILYASHH/PLANR/releases) page.
 
-## Upcoming: store launch (15 December 2026)
+## Upcoming: store launch (5 December 2026)
 - First release on **Google Play** and **F-Droid**, signed with the permanent ExoSynk Labs key.
 
 ## 0.5.1 (2026-11-10)

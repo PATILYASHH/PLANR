@@ -2,7 +2,7 @@
 
 <img src="branding/planr_banner.svg" width="640" alt="PLANR — Plan your day. Guard your attention.">
 
-[![Launch](https://img.shields.io/badge/launch-15%20Dec%202026-7C9CFF?labelColor=black)](#download)
+[![Launch](https://img.shields.io/badge/launch-5%20Dec%202026-7C9CFF?labelColor=black)](#download)
 [![Release](https://img.shields.io/github/v/release/PATILYASHH/PLANR?include_prereleases&label=release&color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases)
 [![Build](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-white?labelColor=black)](LICENSE)
@@ -12,10 +12,10 @@
 ### Your day and your attention, in one offline Android app.
 Alarms, reminders, notes, routines and screen-time habits, all on-device. Nothing is ever uploaded.
 
-**🚀 Launching 15 December 2026 on Google Play and F-Droid**
+**🚀 Launching 5 December 2026 on Google Play and F-Droid**
 
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play — launching 15 December 2026" height="62">](https://play.google.com/store/apps/details?id=com.exosynk.planr)
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid — launching 15 December 2026" height="62">](https://f-droid.org/packages/com.exosynk.planr/)
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play — launching 5 December 2026" height="62">](https://play.google.com/store/apps/details?id=com.exosynk.planr)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid — launching 5 December 2026" height="62">](https://f-droid.org/packages/com.exosynk.planr/)
 
 <sub>Store pages go live on launch day. Until then, get the preview APK below.</sub>
 
@@ -46,9 +46,9 @@ Every feature, module by module: [docs/FEATURES.md](docs/FEATURES.md) · What's 
 
 ## Download
 
-**Google Play** (launching **15 December 2026**): the easiest install, with automatic updates.
+**Google Play** (launching **5 December 2026**): the easiest install, with automatic updates.
 
-**F-Droid** (launching **15 December 2026**): auto-updates too, and F-Droid builds the app **from this source** itself.
+**F-Droid** (launching **5 December 2026**): auto-updates too, and F-Droid builds the app **from this source** itself.
 
 **Right now:** grab the preview APK from [Releases](https://github.com/PATILYASHH/PLANR/releases) (Android 11+). Every release ships `SHA256SUMS.txt`.
 
