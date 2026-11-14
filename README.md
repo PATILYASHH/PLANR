@@ -3,7 +3,7 @@
 <img src="branding/planr_banner.svg" width="640" alt="PLANR — Plan your day. Guard your attention.">
 
 [![F-Droid](https://img.shields.io/f-droid/v/com.exosynk.planr?label=F-Droid&logo=fdroid&logoColor=white&color=white&labelColor=black)](https://f-droid.org/packages/com.exosynk.planr/)
-[![Release](https://img.shields.io/github/v/release/PATILYASHH/PLANR?include_prereleases&label=release&color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases)
+[![Release](https://img.shields.io/github/v/release/PATILYASHH/PLANR?label=release&color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases/latest)
 [![CI](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-white?labelColor=black)](LICENSE)
 [![Downloads](https://img.shields.io/github/downloads/PATILYASHH/PLANR/total?color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases)
@@ -16,9 +16,9 @@ Alarms, reminders, notes, routines and screen-time habits — all on-device. Not
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play — launching 5 December 2026" height="62">](https://play.google.com/store/apps/details?id=com.exosynk.planr)
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid — launching 5 December 2026" height="62">](https://f-droid.org/packages/com.exosynk.planr/)
 
-**🚀 On Google Play & F-Droid from 5 December 2026** — preview APKs available now.
+**🚀 Official release: 5 December 2026 on Google Play & F-Droid** — APKs available now.
 
-[🌐 Website](https://exosynk.com/exosynk-labs) · [⬇️ Download APK](https://github.com/PATILYASHH/PLANR/releases) · [🐛 Report a bug](../../issues/new?template=bug_report.yml) · [✨ Request a feature](../../issues/new?template=feature_request.yml)
+[🌐 Website](https://exosynk.com/exosynk-labs) · [⬇️ Download APK](https://github.com/PATILYASHH/PLANR/releases/latest) · [🐛 Report a bug](../../issues/new?template=bug_report.yml) · [✨ Request a feature](../../issues/new?template=feature_request.yml)
 
 <a href="mailto:feedback.yashpatil@gmail.com?subject=PLANR%20feedback"><img src="https://cdn.simpleicons.org/gmail/D14836" width="30" height="30" alt="Email"></a>&nbsp;&nbsp;
 <a href="https://github.com/PATILYASHH/PLANR/discussions"><img src="https://cdn.simpleicons.org/github/181717" width="30" height="30" alt="GitHub Discussions"></a>&nbsp;&nbsp;
@@ -52,7 +52,7 @@ Full feature list: [docs/FEATURES.md](docs/FEATURES.md) · [CHANGELOG.md](CHANGE
 
 **[F-Droid](https://f-droid.org/packages/com.exosynk.planr/)** — from **5 December 2026**. Auto-updates too, and the app is built **from this source** by F-Droid itself.
 
-Or grab an APK from [Releases](https://github.com/PATILYASHH/PLANR/releases) — one APK for every phone on Android 11+. Every release ships `SHA256SUMS.txt`.
+Or grab an APK from [Releases](https://github.com/PATILYASHH/PLANR/releases/latest) — one APK for every phone on Android 11+. Every release ships `SHA256SUMS.txt`.
 
 > Switching source (Google Play ↔ F-Droid ↔ direct APK)? Each is signed differently, so Android won't update across them — **Settings → Backup & restore → Export**, uninstall, reinstall, restore. Preview APKs released before launch need the same once.
 
