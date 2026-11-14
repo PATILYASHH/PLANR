@@ -1,0 +1,39 @@
+name: 🐛 Bug report
+description: Something in PLANR doesn't work as it should
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: PLANR version
+      description: Settings → About PLANR
+      placeholder: "0.5.1"
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone and Android version
+      placeholder: "Samsung Galaxy S23, Android 14 (One UI 6.1)"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Today / calendar, Smart input, Alarm, Reminders, Notes, Routines, Habit / Shields / Focus, Off-Grid, Backup, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. …\n2. …\n3. …"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected vs. what happened
+    validations:
+      required: true

@@ -1,134 +1,97 @@
-# PLANR
+<div align="center">
 
-*An open-source [ExoSynk Labs](https://exosynk.com/exosynk-labs) project.*
+<img src="branding/planr_banner.svg" width="640" alt="PLANR — Plan your day. Guard your attention.">
 
-[![Build APK](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
-[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![F-Droid](https://img.shields.io/f-droid/v/com.exosynk.planr?label=F-Droid&logo=fdroid&logoColor=white&color=white&labelColor=black)](https://f-droid.org/packages/com.exosynk.planr/)
+[![Release](https://img.shields.io/github/v/release/PATILYASHH/PLANR?include_prereleases&label=release&color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases)
+[![CI](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml/badge.svg)](https://github.com/PATILYASHH/PLANR/actions/workflows/build.yml)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-white?labelColor=black)](LICENSE)
+[![Downloads](https://img.shields.io/github/downloads/PATILYASHH/PLANR/total?color=white&labelColor=black)](https://github.com/PATILYASHH/PLANR/releases)
+[![Launch](https://img.shields.io/badge/launch-5%20Dec%202026-white?labelColor=black)](#download)
+[![Powered by ExoSynk Labs](https://img.shields.io/badge/powered%20by-ExoSynk%20Labs-white?labelColor=black)](https://github.com/ExoSynkLabs)
 
-**Plan your day. Guard your attention.** PLANR is an offline Android planner with
-five modules that work together: **Habit** (mindful pauses, focus, schedules and
-**Off-Grid Mode**, which locks the phone down to calls, camera and a few apps),
-**Alarm**, **Reminders**, **Notes** and **Routines**.
+### Offline-first day planner and habit guard for Android.
+Alarms, reminders, notes, routines and screen-time habits — all on-device. Nothing is ever uploaded.
 
-## Habit module
+[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play — launching 5 December 2026" height="62">](https://play.google.com/store/apps/details?id=com.exosynk.planr)
+[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid — launching 5 December 2026" height="62">](https://f-droid.org/packages/com.exosynk.planr/)
 
-| | |
-|---|---|
-| **Off-Grid Mode** | Whole-phone lock for 15 min – 24 h. Dialer & emergency calls always work, camera is optional, and you can keep up to 5 extra apps. Home, recents, Settings and every other app bounce back to the lock screen. It survives reboots. |
-| **Early-unlock step** | Pick one per session: typing challenge, 10-minute cooldown, or 10 math problems in a row. Early exits break your streak. |
-| **Shields** | Breathing pause + "why are you opening this?", optional forced delay, daily time limit, daily **open limit**, and a pass window after you continue. |
-| **Mindful Gateway** | Optional pause before *every* app you open, with a skip list. |
-| **Emergency passes** | 0–5 per day to open an app that's over its limit or blocked by a schedule or focus block. Never during Off-Grid. |
-| **Lockdown** | Hours when rules can only get stricter. It can also block Android Settings. |
-| **Scheduled Off-Grid** | Recurring Off-Grid windows. The **Bedtime** template locks the phone 11 PM – 7 AM every night. |
-| **Wind Down & Eye Care** | Bedtime reminder with optional auto Do Not Disturb, and 20-20-20 eye breaks. |
-| **Focus (Pomodoro)** | 25/50/90-minute focus blocks with breaks. Chosen apps (your shields by default) are blocked during focus and open again on breaks. |
-| **Schedules** | Block-list or allow-list by time and weekday, including overnight ranges. |
-| **Insights** | 5-week heatmap, weekly top apps, 14-day history per app, XP, levels and achievements. |
-| **Widget** | Screen time or Off-Grid end time, plus level, streak and focus time. |
-| **Backup & restore** | Export to and import from a JSON file you control. |
-| **Uninstall protection** | Optional device admin with no policies, so PLANR can't be deleted on impulse. |
-| **Privacy** | No internet permission. No content or keystroke reading. All data stays on the device. |
+**🚀 On Google Play & F-Droid from 5 December 2026** — preview APKs available now.
 
-## Today & smart input (v0.5)
+[🌐 Website](https://exosynk.com/exosynk-labs) · [⬇️ Download APK](https://github.com/PATILYASHH/PLANR/releases) · [🐛 Report a bug](../../issues/new?template=bug_report.yml) · [✨ Request a feature](../../issues/new?template=feature_request.yml)
 
-| | |
-|---|---|
-| **Today** | Week/month calendar with reminders, notes and alarms per day; day agenda; quick actions. |
-| **Smart input** | “call to parth at 9 am”, “wake me at 6:30 weekdays”, “note: …”. Understands dates, times, repeats and relative times offline; matches names to contacts and adds a Call/Message/WhatsApp button. |
-| **Full-screen alarms** | Wakes the screen and fills it; setup checklist and a 10-second test alarm. |
+<a href="mailto:feedback.yashpatil@gmail.com?subject=PLANR%20feedback"><img src="https://cdn.simpleicons.org/gmail/D14836" width="30" height="30" alt="Email"></a>&nbsp;&nbsp;
+<a href="https://github.com/PATILYASHH/PLANR/discussions"><img src="https://cdn.simpleicons.org/github/181717" width="30" height="30" alt="GitHub Discussions"></a>&nbsp;&nbsp;
+<a href="https://exosynk.com/exosynk-labs"><img src="https://cdn.simpleicons.org/googlechrome/4285F4" width="30" height="30" alt="ExoSynk Labs"></a>
 
-## Planner modules (v0.4)
+</div>
 
-| | |
-|---|---|
-| **Alarm** | Alarm groups with a master switch, repeat days or a date, skip next, ringtone, per-alarm volume with fade-in, vibration patterns, snooze interval/repeat, read aloud, math-to-dismiss, morning brief. |
-| **Reminders** | Date/time, all-day or anytime; repeat; early alert; notification or alarm-style alert; categories; pin; Complete/Snooze from the notification. |
-| **Notes** | Text and checklists, colours, pin, archive, search, "Remind me" (linked reminder), quick notes from the Off-Grid lock screen. |
-| **Routines** | If-then automation with undo: time windows, alarm dismissed, charging, battery, headphones, app opened, Off-Grid, focus → DND, sound mode, volume, Off-Grid, Focus, Gateway, alarm groups, messages, today's brief, open app. |
-| **Together** | Today card on Habit home, morning brief after alarms, routines that drive Off-Grid/Focus/Gateway/alarm groups, XP for reminders and no-snooze wake-ups, one backup for everything. |
+> **Plans you keep, not just plans you make.** Most planners only remind you.
+> PLANR also guards the time you planned: a mindful pause before distracting
+> apps, focus blocks, and **Off-Grid Mode**, which locks the whole phone down to
+> calls, camera and a few apps you pick. No `INTERNET` permission — enforced in
+> the manifest, so your day never leaves your phone.
+> Every feature, module by module: [docs/FEATURES.md](docs/FEATURES.md).
 
-See [ROADMAP.md](ROADMAP.md) for the full plan (Pomodoro, bedtime, Reels
-blocking, website shields, streaks/XP, widgets, AI intent check, and more).
+## Highlights
+
+- 📅 **Today** — week/month calendar of reminders, notes and alarms, the day's agenda, and quick actions
+- ✨ **Smart input** — type "*call to Parth at 9 am*" or "*wake me at 6:30 weekdays*"; PLANR finds the time, the repeat and the contact, and adds a one-tap **Call / Message / WhatsApp** button
+- ⏰ **Alarm** — alarm groups, skip next, fade-in volume, vibration patterns, snooze rules, read-aloud, math-to-dismiss, morning brief; wakes the screen and fills it, even during Off-Grid
+- ✅ **Reminders** & 📝 **Notes** — repeats, early and alarm-style alerts, categories, checklists, colours, notes ↔ reminders linking
+- 🔁 **Routines** — *if this, then that* with **undo when it ends**: time, alarm dismissed, charging, headphones, an app opened → DND, sound mode, Focus, Off-Grid…
+- 🌙 **Off-Grid Mode** — lock the phone for 15 min – 24 h; calls always work; survives reboots; early unlock needs a typing, cooldown or math challenge
+- 🛡️ **Shields & Mindful Gateway** — breathing pause, daily time and open limits, emergency passes, Lockdown hours
+- 🎯 **Focus**, 🛏️ **Wind Down**, 👀 **Eye Care**, 📊 **Insights**, 🏆 **XP & achievements**, 📱 **widget**, 💾 **JSON backup & restore**
+
+Full feature list: [docs/FEATURES.md](docs/FEATURES.md) · [CHANGELOG.md](CHANGELOG.md) · [ROADMAP.md](ROADMAP.md)
 
 ## Download
 
-Get the latest APK from **[Releases](https://github.com/PATILYASHH/PLANR/releases)**.
-It needs Android 11 or newer.
+**[Google Play](https://play.google.com/store/apps/details?id=com.exosynk.planr)** — from **5 December 2026**. The easiest install, with automatic updates.
 
-## Releasing (maintainers)
+**[F-Droid](https://f-droid.org/packages/com.exosynk.planr/)** — from **5 December 2026**. Auto-updates too, and the app is built **from this source** by F-Droid itself.
 
-1. Write `release-notes/vX.Y.Z.md`.
-2. Set `VERSION` to `X.Y.Z` and push to `main`. You can also use **Actions → Release APK →
-   Run workflow**, or push a `vX.Y.Z` tag.
-3. The **Release APK** workflow builds `PLANR-X.Y.Z.apk`, signs it with the
-   ExoSynk Labs key from repo secrets, and publishes the GitHub Release. 0.x
-   versions are marked pre-release.
+Or grab an APK from [Releases](https://github.com/PATILYASHH/PLANR/releases) — one APK for every phone on Android 11+. Every release ships `SHA256SUMS.txt`.
 
-`versionCode` comes from the tag: `MAJOR*10000 + MINOR*100 + PATCH`.
+> Switching source (Google Play ↔ F-Droid ↔ direct APK)? Each is signed differently, so Android won't update across them — **Settings → Backup & restore → Export**, uninstall, reinstall, restore. Preview APKs released before launch need the same once.
 
-## Build
+**First run:** **Habit → Finish setup** (Accessibility + Usage access), then **Alarm → Alarm setup** → *Allow* each item → **Test alarm**.
 
-Every push to `main` builds a debug APK on GitHub Actions. Download it from the
-latest run's **Artifacts** section.
+## Privacy
 
-Local build requirements: Android Studio (latest), JDK 21, Android SDK 36.
+Everything lives in the app's private on-device database. No `INTERNET` permission, no accounts, no analytics. The Accessibility service only sees which app is in front — never screen content or what you type. [PRIVACY.md](PRIVACY.md) · [SECURITY.md](SECURITY.md)
 
-```bash
-./gradlew assembleDebug        # app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest    # schedules, lockdown, XP, alarms, reminders, routines, smart parser, calendar, backup
-```
+## ExoSynk family — XPENC, FITNS & CONECTR
 
-## First run
+PLANR is part of an offline-first family. **[XPENC](https://github.com/PATILYASHH/XPENC)** tracks your money, **[FITNS](https://github.com/PATILYASHH/FITNS)** your fitness, and **CONECTR** is the optional companion that backs your data up to a **private repo in your own GitHub account**.
 
-1. Open PLANR → **Finish setup**.
-2. Turn on **PLANR** under Accessibility.
-3. Grant **Usage access**.
-4. Add a shield, create a schedule, or go Off-Grid.
-5. In **Alarm**, allow notifications and full-screen alarms if PLANR asks.
+**Coming next:** XPENC card dues and bills, and FITNS workout schedules, showing up right in PLANR's calendar and alarms — on-device, with your approval ([plan](docs/exosynk-link.md)).
 
-## How Off-Grid works
-
-An `AccessibilityService` listens only for window-state changes (which app is
-in front). While a session is active, any package outside the allow-list makes
-PLANR bring `LockActivity` to the front. Session state is stored in
-SharedPreferences, so it survives process death and reboot. When the service
-reconnects after boot, it re-locks right away.
-
-## Project layout
-
-```
-app/src/main/java/com/exosynk/planr/
-├── PlanrApp.kt                  service locator, reschedules everything on start
-├── alarm/                       alarms & groups: scheduler, ringing service, ring screen, editor
-├── reminder/                    reminders & categories: scheduler, receiver, screens
-├── notes/                       notes & checklists
-├── routine/                     routines: model/codec, engine (triggers, actions, undo), screens
-├── today/                       Today hub: calendar model and screen, cross-module summary
-├── smart/                       smart input parser, contact lookup, smart bar and contact bar
-├── data/                        Room DB, Off-Grid/settings/progress stores, stats, backup
-├── admin/                       optional uninstall protection
-├── engine/                      accessibility service, Enforcer, Off-Grid scheduler, routines, notifications
-└── ui/                          Compose: screens, lock, intercept, widget, components
-```
-
-## License
-
-All rights reserved © ExoSynk Labs. Choose a license before publishing.
+**[⬇️ Get the family](https://exosynk.com/exosynk-labs)**
 
 ## Contributing
 
-PLANR is open source and contributions are welcome: bug reports, ideas and pull
-requests. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome — bug reports, ideas, translations and pull requests.
 
-## License
+📖 [CONTRIBUTING.md](CONTRIBUTING.md) (setup & PR checklist) · 🤝 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · 🛠️ [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) (build, release, architecture)
 
-Copyright 2026 ExoSynk Labs. Licensed under the [Apache License, Version 2.0](LICENSE).
-Third-party credits are listed in [NOTICE](NOTICE) and in the app under
-**Settings → About PLANR**.
+## Sponsor
 
-## More from ExoSynk Labs
+PLANR is free, open source, and has no ads, trackers or paid tier.
 
-PLANR is one of several open-source ExoSynk Labs projects, alongside **FITNS**,
-**XPENC** and **CONECTR**. See them all at
-**[exosynk.com/exosynk-labs](https://exosynk.com/exosynk-labs)**.
+[![Sponsor PLANR](https://img.shields.io/badge/♥%20Sponsor-PATILYASHH-ea4aaa?style=for-the-badge&logo=githubsponsors&logoColor=white&labelColor=black)](https://github.com/sponsors/PATILYASHH)
+
+Can't sponsor? A ⭐, a bug report, or an idea helps just as much.
+
+---
+
+<div align="center">
+
+**[Apache 2.0](LICENSE) © 2026 ExoSynk Labs** — built by Yash Patil · GitHub [@PATILYASHH](https://github.com/PATILYASHH) · LinkedIn [in/patilyasshh](https://www.linkedin.com/in/patilyasshh/)
+
+Powered by **[ExoSynk Labs](https://github.com/ExoSynkLabs)** · [exosynk.com](https://exosynk.com) · [More from us](https://exosynk.com/exosynk-labs)
+
+<sub>If PLANR gives you back an hour a day, a ⭐ keeps the project alive.</sub>
+
+</div>
