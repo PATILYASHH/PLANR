@@ -50,6 +50,7 @@ class PlanrApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        com.exosynk.planr.data.CrashLog.install(this)
         instance = this
         db = PlanrDatabase.build(this)
         offGrid = OffGridStore(this)

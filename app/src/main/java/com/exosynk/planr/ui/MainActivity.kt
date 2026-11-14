@@ -44,6 +44,7 @@ import com.exosynk.planr.ui.habit.HabitModule
 import com.exosynk.planr.today.TodayNav
 import com.exosynk.planr.today.TodayScreen
 import com.exosynk.planr.ui.screens.AboutScreen
+import com.exosynk.planr.ui.screens.SearchScreen
 import com.exosynk.planr.ui.screens.InsightsScreen
 import com.exosynk.planr.ui.screens.SettingsScreen
 import com.exosynk.planr.ui.theme.PlanrTheme
@@ -81,6 +82,20 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openRequest.value = intent?.getStringExtra(EXTRA_OPEN)
         setContent {
             PlanrTheme {
+                // Status/nav bar icons follow PLANR's own theme, not just the system's.
+                val dark = com.exosynk.planr.ui.theme.planrIsDark()
+                LaunchedEffect(dark) {
+                    val t = android.graphics.Color.TRANSPARENT
+                    val style = if (dark) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t)
+                    enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                }
+                var onboarding by rememberSaveable { mutableStateOf(com.exosynk.planr.ui.onboarding.Onboarding.shouldShow(this@MainActivity)) }
+                if (onboarding) {
+                    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+                        com.exosynk.planr.ui.onboarding.OnboardingScreen(Modifier.padding(padding)) { onboarding = false }
+                    }
+                    return@PlanrTheme
+                }
                 var module by rememberSaveable { mutableIntStateOf(MODULE_TODAY) }
                 var habitTab by rememberSaveable { mutableIntStateOf(0) }
                 var page by rememberSaveable { mutableStateOf<String?>(null) }
@@ -94,8 +109,17 @@ class MainActivity : ComponentActivity() {
                         OPEN_NOTES -> module = MODULE_NOTES
                         OPEN_HABIT -> module = MODULE_HABIT
                         OPEN_TODAY -> module = MODULE_TODAY
+                        OPEN_OFFGRID -> { module = MODULE_HABIT; habitTab = HABIT_OFFGRID }
+                        OPEN_FOCUS -> { module = MODULE_HABIT; habitTab = HABIT_FOCUS }
                     }
-                    page = if (request == OPEN_ROUTINES) PAGE_ROUTINES else null
+                    page = when (request) {
+                        OPEN_ROUTINES -> PAGE_ROUTINES
+                        OPEN_NEW_REMINDER -> "reminder:0"
+                        OPEN_NEW_ALARM -> "alarm:0"
+                        OPEN_NEW_NOTE -> "note:0"
+                        OPEN_SEARCH -> PAGE_SEARCH
+                        else -> null
+                    }
                     openRequest.value = null
                 }
 
@@ -124,6 +148,13 @@ class MainActivity : ComponentActivity() {
                     when (parts.firstOrNull()) {
                         PAGE_SETTINGS -> SettingsScreen(m, onBack = back, onOpenAbout = { page = PAGE_ABOUT })
                         PAGE_ABOUT -> AboutScreen(m, onBack = back)
+                        PAGE_SEARCH -> SearchScreen(
+                            m, onBack = back,
+                            openAlarm = { page = "alarm:$it" },
+                            openReminder = { page = "reminder:$it" },
+                            openNote = { page = "note:$it" },
+                            openRoutine = { page = "routine:$it" },
+                        )
                         PAGE_INSIGHTS -> InsightsScreen(m, onBack = back)
                         "alarm" -> AlarmEditor(m, id, onDone = back)
                         "reminder" -> ReminderEditor(
@@ -156,6 +187,7 @@ class MainActivity : ComponentActivity() {
                                     habit = { module = MODULE_HABIT; habitTab = 0 },
                                     settings = { page = PAGE_SETTINGS },
                                     about = { page = PAGE_ABOUT },
+                                    search = { page = PAGE_SEARCH },
                                 ),
                             )
                             MODULE_HABIT -> HabitModule(
@@ -189,12 +221,19 @@ class MainActivity : ComponentActivity() {
             if (PlanrApp.instance.offGrid.isLocked()) OffGridManager.showLock(this@MainActivity)
         }
         PlanrWidget.refresh(this)
+        PlanrApp.instance.appScope.launch { runCatching { com.exosynk.planr.data.AutoBackup.runIfDue(applicationContext) } }
     }
 
     companion object {
         const val EXTRA_OPEN = "open"
         const val OPEN_HABIT = "habit"
         const val OPEN_TODAY = "today"
+        const val OPEN_NEW_REMINDER = "new-reminder"
+        const val OPEN_NEW_ALARM = "new-alarm"
+        const val OPEN_NEW_NOTE = "new-note"
+        const val OPEN_SEARCH = "search"
+        const val OPEN_OFFGRID = "offgrid"
+        const val OPEN_FOCUS = "focus"
         const val OPEN_ALARM = "alarm"
         const val OPEN_REMINDERS = "reminders"
         const val OPEN_NOTES = "notes"
@@ -204,5 +243,6 @@ class MainActivity : ComponentActivity() {
         private const val PAGE_INSIGHTS = "insights"
         private const val PAGE_ROUTINES = "routines"
         private const val PAGE_ABOUT = "about"
+        private const val PAGE_SEARCH = "search"
     }
 }

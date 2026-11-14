@@ -33,7 +33,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -136,6 +139,33 @@ fun AboutScreen(modifier: Modifier, onBack: () -> Unit) {
             )
         }
         Gap(16.dp)
+
+        var crashes by remember { mutableStateOf(com.exosynk.planr.data.CrashLog.reports(context).size) }
+        if (crashes > 0) {
+            SectionCard {
+                Text("Crash reports", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "PLANR stopped unexpectedly $crashes ${if (crashes == 1) "time" else "times"}. The reports stay on this phone. " +
+                        "Share them in a bug report to help fix it.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Gap(8.dp)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = {
+                        val send = Intent(Intent.ACTION_SEND)
+                            .setType("text/plain")
+                            .putExtra(Intent.EXTRA_SUBJECT, "PLANR $version crash report")
+                            .putExtra(Intent.EXTRA_TEXT, com.exosynk.planr.data.CrashLog.shareText(context))
+                        runCatching { context.startActivity(Intent.createChooser(send, "Share crash report").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    }) { Text("Share") }
+                    androidx.compose.material3.OutlinedButton(onClick = {
+                        com.exosynk.planr.data.CrashLog.clear(context)
+                        crashes = 0
+                    }) { Text("Clear") }
+                }
+            }
+            Gap(16.dp)
+        }
 
         SectionCard {
             Text("Credits", style = MaterialTheme.typography.titleLarge)

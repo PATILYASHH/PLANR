@@ -85,7 +85,10 @@ class PlanrAccessibilityService : AccessibilityService() {
                 app.focus.advance()
                 Routines.tick(ctx, app.settings.current)
                 if (ticks % WIDGET_EVERY_TICKS == 0L) PlanrWidget.refresh(ctx)
-                if (ticks % STATS_EVERY_TICKS == 0L) app.appScope.launch { runCatching { app.stats.sync() } }
+                if (ticks % STATS_EVERY_TICKS == 0L) app.appScope.launch {
+                    runCatching { app.stats.sync() }
+                    runCatching { com.exosynk.planr.data.AutoBackup.runIfDue(ctx) }
+                }
                 // Safety net for routine time windows (exact alarms are the primary trigger).
                 if (ticks % ROUTINE_EVERY_TICKS == 0L) RoutineEngine.post(RoutineEvent.Evaluate)
                 ticks++

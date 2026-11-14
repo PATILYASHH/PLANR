@@ -10,7 +10,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.time.LocalDateTime
 
+enum class ThemeMode(val title: String) { SYSTEM("System"), LIGHT("Light"), DARK("Dark") }
+
 data class PlanrSettings(
+    // Appearance
+    val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    /** Material You: colours from the wallpaper (Android 12+). */
+    val dynamicColor: Boolean = false,
+
+    /** Show the phone's calendar events on Today (needs READ_CALENDAR). */
+    val deviceCalendar: Boolean = false,
+
+    // Daily auto-backup to a folder the user picked (SAF tree URI; null = off)
+    val autoBackupFolder: String? = null,
+
     // Mindful Gateway: pause before every app that isn't whitelisted
     val gatewayEnabled: Boolean = false,
     val gatewayWhitelist: Set<String> = emptySet(),
@@ -139,6 +152,10 @@ class SettingsStore(context: Context) {
             putInt("wdEnd", s.windDownEnd)
             putBoolean("wdDnd", s.windDownDnd)
             putBoolean("eye", s.eyeCareEnabled)
+            putString("theme", s.themeMode.name)
+            putBoolean("dynamic", s.dynamicColor)
+            putString("backupFolder", s.autoBackupFolder)
+            putBoolean("deviceCal", s.deviceCalendar)
         }
         _state.value = s
     }
@@ -162,6 +179,10 @@ class SettingsStore(context: Context) {
             windDownEnd = prefs.getInt("wdEnd", d.windDownEnd),
             windDownDnd = prefs.getBoolean("wdDnd", d.windDownDnd),
             eyeCareEnabled = prefs.getBoolean("eye", d.eyeCareEnabled),
+            themeMode = runCatching { ThemeMode.valueOf(prefs.getString("theme", null) ?: "") }.getOrDefault(d.themeMode),
+            dynamicColor = prefs.getBoolean("dynamic", d.dynamicColor),
+            autoBackupFolder = prefs.getString("backupFolder", null),
+            deviceCalendar = prefs.getBoolean("deviceCal", d.deviceCalendar),
         )
     }
 }

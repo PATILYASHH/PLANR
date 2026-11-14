@@ -97,6 +97,8 @@ object Backup {
             put("windDownEnd", st.windDownEnd)
             put("windDownDnd", st.windDownDnd)
             put("eyeCareEnabled", st.eyeCareEnabled)
+            put("themeMode", st.themeMode.name)
+            put("dynamicColor", st.dynamicColor)
         })
 
         val p = data.progress.stats
@@ -344,6 +346,8 @@ object Backup {
             windDownEnd = so.optInt("windDownEnd", d.windDownEnd),
             windDownDnd = so.optBoolean("windDownDnd", d.windDownDnd),
             eyeCareEnabled = so.optBoolean("eyeCareEnabled", d.eyeCareEnabled),
+            themeMode = runCatching { ThemeMode.valueOf(so.optString("themeMode")) }.getOrDefault(d.themeMode),
+            dynamicColor = so.optBoolean("dynamicColor", d.dynamicColor),
         ).sanitized()
 
         val po = root.optJSONObject("progress") ?: JSONObject()
@@ -429,7 +433,8 @@ object BackupManager {
         app.db.shieldDao().replaceAll(data.shields)
         app.db.scheduleDao().replaceAll(data.schedules)
         app.db.offGridDao().replaceAll(data.sessions)
-        app.settings.update(data.settings, force = true)
+        // The auto-backup folder is a permission on *this* phone; never take it from a file.
+        app.settings.update(data.settings.copy(autoBackupFolder = app.settings.current.autoBackupFolder), force = true)
         app.progress.restore(data.progress)
         data.planner?.let { p ->
             // Cancel what's registered for the alarms/reminders being replaced, then register the new set.

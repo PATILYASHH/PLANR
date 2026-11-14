@@ -105,12 +105,14 @@ fun SmartAddBar(
     modifier: Modifier = Modifier,
     placeholder: String = "Try “call Parth at 9 am” or “wake me at 6:30”",
     defaultDay: LocalDate? = null,
+    initialText: String = "",
+    onAdded: () -> Unit = {},
     onMoreOptions: (SmartKind) -> Unit,
 ) {
     val app = PlanrApp.instance
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var text by remember { mutableStateOf("") }
+    var text by remember { mutableStateOf(initialText.trim().take(300)) }
     var kindOverride by remember { mutableStateOf<SmartKind?>(null) }
     var contact by remember { mutableStateOf<ReminderContact?>(null) }
     var nowTick by remember { mutableIntStateOf(0) }
@@ -177,6 +179,7 @@ fun SmartAddBar(
             }
             toastOnMain(ctx, msg)
             reset()
+            onAdded()
         }
     }
 

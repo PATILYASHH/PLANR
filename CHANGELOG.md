@@ -5,7 +5,17 @@ All notable changes to PLANR. Full notes for each release are in [release-notes/
 ## Official release: 5 December 2026
 - PLANR launches on **Google Play** and **F-Droid**, signed with the permanent ExoSynk Labs key.
 
-## 0.5.3 (unreleased)
+## 0.6.0 (unreleased)
+- Share into PLANR (share sheet and text-selection menu) with smart parsing.
+- Phone calendar events on Today (read-only, on-device).
+- Light theme, Material You colours and an Appearance setting.
+- Search across reminders, notes, alarms and routines.
+- Quick Settings tiles (Focus, Quick add, Off-Grid) and Today / Quick add widgets.
+- Daily auto-backup to a chosen folder (keeps 7), named like XPENC's for CONECTR.
+- Hinglish smart input ("kal 9 baje parth ko call karna").
+- First-run walkthrough; on-device crash reports with Share in About.
+
+## 0.5.3 (folded into 0.6.0)
 - Off-Grid: true full-screen lock; navigation and status bars can't be used to leave it.
 - Off-Grid: incoming calls always come through, full screen with phone access allowed.
 - Repeating reminders keep alerting when one is missed.

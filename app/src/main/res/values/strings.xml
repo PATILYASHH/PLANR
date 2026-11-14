@@ -3,4 +3,12 @@
     <string name="app_name">PLANR</string>
     <string name="accessibility_description">PLANR uses this service to see which app is in the foreground so it can show mindful pauses, enforce your schedules and keep Off-Grid Mode locked. PLANR does not read what you type, does not collect screen content and has no internet access.</string>
     <string name="widget_description">Screen time, Off-Grid status, level and streak</string>
+    <string name="widget_today_description">Today: next alarm and what\'s due</string>
+    <string name="widget_quick_add_description">Quick add a reminder, alarm or note</string>
+    <string name="widget_add">+ Add</string>
+    <string name="widget_nothing_due">Nothing due today 🎉</string>
+    <string name="widget_qa_reminder">✨\nReminder</string>
+    <string name="widget_qa_alarm">⏰\nAlarm</string>
+    <string name="widget_qa_note">📝\nNote</string>
+    <string name="widget_qa_focus">🎯\nFocus</string>
 </resources>

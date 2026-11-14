@@ -76,7 +76,7 @@ class LockActivity : ComponentActivity() {
         }
         hideSystemBars()
         setContent {
-            PlanrTheme {
+            PlanrTheme(forceDark = true) {
                 BackHandler { /* swallow */ }
                 LockScreen(
                     onFinished = { early -> exitLock(early) },

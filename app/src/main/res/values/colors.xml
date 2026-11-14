@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="planr_bg">#0E0F13</color>
+    <color name="planr_bg">#F6F7FB</color>
     <color name="planr_accent">#7C9CFF</color>
 </resources>

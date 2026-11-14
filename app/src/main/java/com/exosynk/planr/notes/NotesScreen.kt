@@ -49,9 +49,16 @@ val NOTE_COLORS = listOf(
     0x00000000, 0xFF2A3354, 0xFF1F3B30, 0xFF3D3320, 0xFF402626, 0xFF33264A, 0xFF1C3A40, 0xFF3A3A3A,
 ).map { it.toInt() }
 
+/** The same eight choices, as light pastels for the light theme. */
+private val NOTE_COLORS_LIGHT = listOf(
+    0x00000000, 0xFFDDE3FF, 0xFFD6F5E5, 0xFFFFF1CC, 0xFFFFDAD6, 0xFFEADCFF, 0xFFD3F2F7, 0xFFE6E7EB,
+).map { it.toInt() }
+
 @Composable
-fun noteColor(index: Int): Color =
-    if (index <= 0 || index >= NOTE_COLORS.size) MaterialTheme.colorScheme.surfaceContainer else Color(NOTE_COLORS[index])
+fun noteColor(index: Int): Color {
+    if (index <= 0 || index >= NOTE_COLORS.size) return MaterialTheme.colorScheme.surfaceContainer
+    return Color(if (com.exosynk.planr.ui.theme.isLightScheme()) NOTE_COLORS_LIGHT[index] else NOTE_COLORS[index])
+}
 
 /** [onOpen] gets a note id, 0 for a new text note or -1 for a new checklist. */
 @Composable

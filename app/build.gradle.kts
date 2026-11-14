@@ -5,8 +5,8 @@ plugins {
 }
 
 // Release CI passes -PplanrVersionName=1.2.3 -PplanrVersionCode=10203 from the git tag.
-val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.5.3"
-val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 503
+val planrVersionName = (findProperty("planrVersionName") as String?) ?: "0.6.0"
+val planrVersionCode = (findProperty("planrVersionCode") as String?)?.toInt() ?: 600
 
 // Release signing comes from environment variables (GitHub secrets). See
 // docs/SIGNING.md and scripts/create-release-key.sh.

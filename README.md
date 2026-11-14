@@ -34,14 +34,15 @@ Alarms, reminders, notes, routines and screen-time habits — all on-device. Not
 
 ## Highlights
 
-- 📅 **Today** — week/month calendar of reminders, notes and alarms, the day's agenda, and quick actions
-- ✨ **Smart input** — type "*call to Parth at 9 am*" or "*wake me at 6:30 weekdays*"; PLANR finds the time, the repeat and the contact, and adds a one-tap **Call / Message / WhatsApp** button
+- 📅 **Today** — week/month calendar of reminders, notes, alarms **and your phone's calendar events**, the day's agenda, search, and quick actions
+- 📲 **Share into PLANR** — share or select text in any app ("*Dentist Tue 4pm*") and it becomes a reminder; **Quick Settings tiles** and **widgets** for one-tap adding
+- ✨ **Smart input** — type "*call to Parth at 9 am*" or "*wake me at 6:30 weekdays*"; PLANR finds the time, the repeat and the contact, and adds a one-tap **Call / Message / WhatsApp** button. Speaks Hinglish too: "*kal 9 baje parth ko call karna*"
 - ⏰ **Alarm** — alarm groups, skip next, fade-in volume, vibration patterns, snooze rules, read-aloud, math-to-dismiss, morning brief; wakes the screen and fills it, even during Off-Grid
 - ✅ **Reminders** & 📝 **Notes** — repeats, early and alarm-style alerts, categories, checklists, colours, notes ↔ reminders linking
 - 🔁 **Routines** — *if this, then that* with **undo when it ends**: time, alarm dismissed, charging, headphones, an app opened → DND, sound mode, Focus, Off-Grid…
 - 🌙 **Off-Grid Mode** — lock the phone for 15 min – 24 h; calls always work; survives reboots; early unlock needs a typing, cooldown or math challenge
 - 🛡️ **Shields & Mindful Gateway** — breathing pause, daily time and open limits, emergency passes, Lockdown hours
-- 🎯 **Focus**, 🛏️ **Wind Down**, 👀 **Eye Care**, 📊 **Insights**, 🏆 **XP & achievements**, 📱 **widget**, 💾 **JSON backup & restore**
+- 🌗 **Light, dark & Material You**, 🎯 **Focus**, 🛏️ **Wind Down**, 👀 **Eye Care**, 📊 **Insights**, 🏆 **XP & achievements**, 📱 **widget**, 💾 **JSON backup & restore**
 
 Full feature list: [docs/FEATURES.md](docs/FEATURES.md) · [CHANGELOG.md](CHANGELOG.md) · [ROADMAP.md](ROADMAP.md)
 
