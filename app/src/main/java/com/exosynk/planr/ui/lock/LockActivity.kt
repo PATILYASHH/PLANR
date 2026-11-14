@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,7 +19,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.systemBarsIgnoringVisibility
+import androidx.compose.foundation.layout.systemGestures
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -65,6 +74,7 @@ class LockActivity : ComponentActivity() {
             finish()
             return
         }
+        hideSystemBars()
         setContent {
             PlanrTheme {
                 BackHandler { /* swallow */ }
@@ -77,6 +87,23 @@ class LockActivity : ComponentActivity() {
     }
 
     private var exited = false
+
+    /**
+     * Hides the status and navigation bars. A swipe only peeks them briefly, and while
+     * the lock screen is up the accessibility service also shields that area, so
+     * Back / Home / Recents can't take you out of Off-Grid.
+     */
+    private fun hideSystemBars() {
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) hideSystemBars()
+    }
 
     private fun exitLock(early: Boolean) {
         if (exited) return
@@ -92,6 +119,7 @@ class LockActivity : ComponentActivity() {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun LockScreen(onFinished: (early: Boolean) -> Unit, launch: (Intent?) -> Unit) {
     val state by PlanrApp.instance.offGrid.state.collectAsState()
@@ -110,7 +138,13 @@ private fun LockScreen(onFinished: (early: Boolean) -> Unit, launch: (Intent?) -
     }
 
     Box(
-        Modifier.fillMaxSize().background(Color.Black).safeDrawingPadding().padding(24.dp),
+        Modifier.fillMaxSize().background(Color.Black)
+            // The bars are hidden and their area is shielded (see OffGridShield), so keep
+            // every button clear of it: pad by the bars and gesture areas even while hidden.
+            .windowInsetsPadding(WindowInsets.systemBarsIgnoringVisibility.union(WindowInsets.systemGestures))
+            .windowInsetsPadding(WindowInsets.displayCutout)
+            .imePadding()
+            .padding(horizontal = 24.dp, vertical = 32.dp),
     ) {
         if (unlocking) {
             ChallengeHost(

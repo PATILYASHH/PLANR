@@ -72,6 +72,10 @@ class Enforcer(private val app: PlanrApp) {
             if (pkg in safeCache) return Decision.Allow
             if (offGrid.allowCamera && pkg == cameraCache) return Decision.Allow
             if (pkg in offGrid.extraAllowed) return Decision.Allow
+            // Calls always come through. Phone makers use their own call-screen
+            // packages, so during a ringing or active call allow any screen that
+            // isn't a launchable app or the launcher (that's what call UIs are).
+            if (pkg !in launchableCache && pkg !in launcherCache && CallWatcher.isInCall(app)) return Decision.Allow
             return Decision.OffGridLock
         }
 

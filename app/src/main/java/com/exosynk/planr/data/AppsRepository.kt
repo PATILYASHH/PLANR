@@ -52,7 +52,7 @@ class AppsRepository(private val context: Context) {
         return pm.queryIntentActivities(intent, 0).map { it.activityInfo.packageName }.toSet()
     }
 
-    private fun inputMethodPackages(): Set<String> =
+    fun inputMethodPackages(): Set<String> =
         context.getSystemService(InputMethodManager::class.java)
             ?.inputMethodList?.map { it.packageName }?.toSet() ?: emptySet()
 

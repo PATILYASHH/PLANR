@@ -85,4 +85,22 @@ class PlannerTimeTest {
         val r = Reminder(title = "x", dueAt = ms(at(9, 10)), snoozedUntil = ms(at(9, 10, 10)))
         assertEquals(ms(at(9, 10, 10)) to ReminderTime.Stage.DUE, ReminderTime.nextAlert(r, ms(at(9, 10, 1)), utc))
     }
+
+    @Test fun overdueRepeatingReminderKeepsAlerting() {
+        val r = Reminder(title = "Pills", dueAt = ms(at(9, 9)), repeat = "DAILY")
+        // Not ticked off on Monday: the next alert is Tuesday's occurrence, not never.
+        assertEquals(ms(at(10, 9)) to ReminderTime.Stage.DUE, ReminderTime.nextAlert(r, ms(at(9, 12)), utc))
+        val early = r.copy(earlyMinutes = 15)
+        assertEquals(ms(at(10, 8, 45)) to ReminderTime.Stage.EARLY, ReminderTime.nextAlert(early, ms(at(9, 12)), utc))
+        // A one-off reminder still goes quiet once it's overdue.
+        assertNull(ReminderTime.nextAlert(r.copy(repeat = "NONE"), ms(at(9, 12)), utc))
+    }
+
+    @Test fun rollForwardOnlyForLaterOccurrences() {
+        val r = Reminder(title = "Pills", dueAt = ms(at(9, 9)), repeat = "DAILY")
+        assertNull(ReminderTime.rollForward(r, ms(at(9, 9)) + 30_000, utc)) // on time: stays Monday
+        assertEquals(ms(at(10, 9)), ReminderTime.rollForward(r, ms(at(10, 9)), utc)) // Tuesday's alert
+        assertEquals(ms(at(12, 9)), ReminderTime.rollForward(r, ms(at(12, 9)), utc)) // several days missed
+        assertNull(ReminderTime.rollForward(r.copy(repeat = "NONE"), ms(at(10, 9)), utc))
+    }
 }

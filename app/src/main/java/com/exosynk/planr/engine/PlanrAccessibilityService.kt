@@ -18,6 +18,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.ui.intercept.InterceptActivity
+import com.exosynk.planr.ui.lock.LockActivity
 import com.exosynk.planr.ui.widget.PlanrWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,6 +41,13 @@ class PlanrAccessibilityService : AccessibilityService() {
     private var lastTickAt = 0L
 
     private var batteryReceiver: BroadcastReceiver? = null
+    private lateinit var shield: OffGridShield
+    private var callWatcher: CallWatcher? = null
+    private val main = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /** True while PLANR's own Off-Grid lock screen is the window in front. */
+    private var lockInFront = false
+    private var transientPackages: Set<String> = emptySet()
     private var audioCallback: AudioDeviceCallback? = null
 
     override fun onServiceConnected() {
@@ -49,6 +57,15 @@ class PlanrAccessibilityService : AccessibilityService() {
         val app = application as PlanrApp
         enforcer = Enforcer(app)
         watchDeviceState()
+        shield = OffGridShield(this)
+        transientPackages = AppsRepository.SYSTEM_SAFE + app.apps.inputMethodPackages()
+        callWatcher = CallWatcher(this) { ringing, _ ->
+            main.post {
+                updateShield()
+                // A call while the lock screen is up: bring the full call screen forward.
+                if (ringing && lockInFront && app.offGrid.isLocked()) CallWatcher.showCallScreen(this)
+            }
+        }.also { it.start() }
 
         scope.launch {
             app.db.shieldDao().observeAll().collect { list ->
@@ -79,6 +96,7 @@ class PlanrAccessibilityService : AccessibilityService() {
         scope.launch(Dispatchers.Main) {
             app.offGrid.state.collect {
                 enforcer.invalidate()
+                updateShield()
                 if (!OffGridManager.completeIfExpired() && app.offGrid.isLocked()) {
                     OffGridManager.showLock(this@PlanrAccessibilityService)
                 }
@@ -89,6 +107,13 @@ class PlanrAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
+        // Shade, toasts and keyboards come and go over the lock screen; ignore them here.
+        if (pkg == packageName) {
+            lockInFront = event.className?.toString() == LockActivity::class.java.name
+        } else if (pkg !in transientPackages) {
+            lockInFront = false
+        }
+        if (::shield.isInitialized) updateShield()
         if (pkg == packageName) {
             trackForegroundApp(pkg)
             return
@@ -109,7 +134,7 @@ class PlanrAccessibilityService : AccessibilityService() {
         when (val decision = enforcer.decide(pkg)) {
             Decision.Allow -> Unit
             Decision.OffGridLock -> {
-                if (debounced(pkg, 300)) OffGridManager.showLock(this)
+                if (debounced(pkg, 150)) OffGridManager.showLock(this)
             }
             is Decision.Intercept -> {
                 if (debounced(pkg, 1500)) openIntercept(decision)
@@ -184,9 +209,18 @@ class PlanrAccessibilityService : AccessibilityService() {
 
     override fun onInterrupt() = Unit
 
+    /** The nav/status-bar shield is up only over the lock screen, and never during a call. */
+    private fun updateShield() {
+        val app = application as PlanrApp
+        val want = lockInFront && app.offGrid.isLocked() && !CallWatcher.isInCall(this)
+        if (want) shield.show() else shield.hide()
+    }
+
     override fun onDestroy() {
         running = false
         instance = null
+        if (::shield.isInitialized) shield.hide()
+        callWatcher?.stop()
         batteryReceiver?.let { runCatching { unregisterReceiver(it) } }
         audioCallback?.let { cb -> runCatching { getSystemService(AudioManager::class.java)?.unregisterAudioDeviceCallback(cb) } }
         scope.cancel()

@@ -70,6 +70,10 @@ fun OffGridScreen(modifier: Modifier) {
     var tick by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
     val serviceOn = remember(tick) { PlanrAccessibilityService.isEnabled(context) }
+    var callsGranted by remember(tick) { mutableStateOf(com.exosynk.planr.engine.CallWatcher.hasPhonePermission(context)) }
+    val phonePermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { callsGranted = it }
 
     val durationMs = minutes.roundToInt() * 60_000L
 
@@ -110,6 +114,19 @@ fun OffGridScreen(modifier: Modifier) {
             Text("What stays usable", style = MaterialTheme.typography.titleMedium)
             Gap(8.dp)
             Text("Phone & emergency calls — always on", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!callsGranted) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Allow phone access so incoming calls open full screen straight away during Off-Grid",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { phonePermission.launch(android.Manifest.permission.READ_PHONE_STATE) }) {
+                        Text("Allow")
+                    }
+                }
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Camera", modifier = Modifier.weight(1f))
                 Switch(checked = allowCamera, onCheckedChange = { allowCamera = it })

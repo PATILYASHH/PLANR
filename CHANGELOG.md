@@ -5,6 +5,12 @@ All notable changes to PLANR. Full notes for each release are in [release-notes/
 ## Official release: 5 December 2026
 - PLANR launches on **Google Play** and **F-Droid**, signed with the permanent ExoSynk Labs key.
 
+## 0.5.3 (unreleased)
+- Off-Grid: true full-screen lock; navigation and status bars can't be used to leave it.
+- Off-Grid: incoming calls always come through, full screen with phone access allowed.
+- Repeating reminders keep alerting when one is missed.
+- Releases are signed with the permanent ExoSynk Labs key (see docs/SIGNING.md).
+
 ## 0.5.2 (2026-11-14)
 - Official release date (5 December 2026) shown in **About PLANR**.
 - GitHub releases are full releases now, so "latest" links always work.

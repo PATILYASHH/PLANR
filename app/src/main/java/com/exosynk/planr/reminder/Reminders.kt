@@ -114,9 +114,15 @@ object Reminders {
 
     /** Called when an alert fires. */
     internal suspend fun fire(context: Context, id: Long, stage: ReminderTime.Stage) {
-        val r = app.db.reminderDao().get(id) ?: return
+        var r = app.db.reminderDao().get(id) ?: return
         if (r.completed) return
-        if (r.snoozedUntil != 0L) app.db.reminderDao().upsert(r.copy(snoozedUntil = 0))
+        // An overdue repeating reminder alerting for a later occurrence moves to it.
+        val nowMs = System.currentTimeMillis()
+        val rolledTo = if (r.snoozedUntil == 0L) ReminderTime.rollForward(r, nowMs + if (stage == ReminderTime.Stage.EARLY) r.earlyMinutes * 60_000L else 0L) else null
+        if (rolledTo != null || r.snoozedUntil != 0L) {
+            r = r.copy(dueAt = rolledTo ?: r.dueAt, snoozedUntil = 0)
+            app.db.reminderDao().upsert(r)
+        }
         when {
             stage == ReminderTime.Stage.EARLY -> Notifier.reminder(context, r, early = true)
             r.style == AlertStyle.ALARM -> AlarmService.start(context, AlarmService.Kind.REMINDER, id)
