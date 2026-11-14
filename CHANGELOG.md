@@ -2,8 +2,13 @@
 
 All notable changes to PLANR. Full notes for each release are in [release-notes/](release-notes/) and on the [Releases](https://github.com/PATILYASHH/PLANR/releases) page.
 
-## Upcoming: store launch (5 December 2026)
-- First release on **Google Play** and **F-Droid**, signed with the permanent ExoSynk Labs key.
+## Official release: 5 December 2026
+- PLANR launches on **Google Play** and **F-Droid**, signed with the permanent ExoSynk Labs key.
+
+## 0.5.2 (2026-11-14)
+- Official release date (5 December 2026) shown in **About PLANR**.
+- GitHub releases are full releases now, so "latest" links always work.
+- New README, Code of Conduct, Security and Privacy policies, issue forms and docs.
 
 ## 0.5.1 (2026-11-10)
 - PLANR is **open source** under the Apache License 2.0 (LICENSE, NOTICE, CONTRIBUTING).

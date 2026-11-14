@@ -107,7 +107,8 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: PLANR ${{ steps.ver.outputs.name }}
           body_path: ${{ steps.notes.outputs.path }}
-          prerelease: ${{ startsWith(steps.ver.outputs.name, '0.') }}
+          prerelease: false
+          make_latest: true
           overwrite_files: true
           files: |
             dist/*.apk

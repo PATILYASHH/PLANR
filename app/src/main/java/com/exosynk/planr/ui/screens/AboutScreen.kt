@@ -101,6 +101,12 @@ fun AboutScreen(modifier: Modifier, onBack: () -> Unit) {
             Text("Plan your day. Guard your attention.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             Gap(12.dp)
             Text("An ExoSynk Labs project", style = MaterialTheme.typography.titleMedium, color = Accent)
+            Gap(4.dp)
+            Text(
+                "Official release: 5 December 2026 · Google Play & F-Droid",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Gap(16.dp)
 
