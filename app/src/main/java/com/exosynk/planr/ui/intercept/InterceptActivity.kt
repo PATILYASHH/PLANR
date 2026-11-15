@@ -73,7 +73,7 @@ class InterceptActivity : ComponentActivity() {
         enableEdgeToEdge()
         readIntent(intent)
         setContent {
-            PlanrTheme {
+            PlanrTheme(forceDark = true) {
                 BackHandler { goHome() }
                 target?.let { t ->
                     InterceptScreen(

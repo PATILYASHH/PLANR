@@ -5,6 +5,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,8 @@ import androidx.compose.material.icons.outlined.Call
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.DarkMode
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Settings
@@ -91,6 +95,7 @@ import java.util.Locale
 
 private val NoteGreen = Color(0xFF5BD6A0)
 private val AlarmOrange = Color(0xFFFFB86B)
+private val EventPurple = Color(0xFFC792EA)
 
 /** Where Today's buttons go. */
 class TodayNav(
@@ -106,6 +111,7 @@ class TodayNav(
     val habit: () -> Unit,
     val settings: () -> Unit,
     val about: () -> Unit,
+    val search: () -> Unit,
 )
 
 /**
@@ -138,6 +144,22 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
     else rangeFrom.plusDays(6)
     val reminderDays = remember(reminders, rangeFrom, rangeTo) { CalendarModel.reminderDays(reminders, rangeFrom, rangeTo) }
     val noteDays = remember(notes) { CalendarModel.notesByDay(notes) }
+    // Phone calendar events (Google, Samsung…), read on-device when turned on.
+    val settings by app.settings.state.collectAsState()
+    var calTick by remember { mutableStateOf(0) }
+    val showCalendar = settings.deviceCalendar && DeviceCalendar.hasPermission(context)
+    val calendarPermission = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        app.settings.update(app.settings.current.copy(deviceCalendar = granted), force = true)
+        calTick++
+    }
+    val eventDays by produceState(emptyMap<LocalDate, List<CalendarEvent>>(), showCalendar, rangeFrom, rangeTo, calTick, today) {
+        value = if (showCalendar) withContext(Dispatchers.IO) {
+            DeviceCalendar.byDay(DeviceCalendar.events(context, rangeFrom, rangeTo))
+        } else emptyMap()
+    }
+    var calendarPromptHidden by rememberSaveable { mutableStateOf(false) }
     val agenda = DayAgenda(
         alarms = CalendarModel.alarmsOn(selected, alarms, groups, now),
         reminders = reminderDays[selected].orEmpty(),
@@ -165,10 +187,12 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                IconButton(onClick = nav.search) { Icon(Icons.Outlined.Search, contentDescription = "Search") }
                 IconButton(onClick = nav.about) { Icon(Icons.Outlined.Info, contentDescription = "About PLANR") }
                 IconButton(onClick = nav.settings) { Icon(Icons.Outlined.Settings, contentDescription = "Settings") }
             }
             Gap(16.dp)
+            SyncBanner()
             SmartAddBar(
                 defaultDay = selected.takeIf { it != today },
                 placeholder = if (selected == today) "Try “call Parth at 9 am” or “wake me at 6:30”"
@@ -186,7 +210,25 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
             // Calendar
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer).padding(12.dp).animateContentSize(),
+                    .background(MaterialTheme.colorScheme.surfaceContainer).padding(12.dp).animateContentSize()
+                    // Swipe left/right across the calendar for the next/previous week or month.
+                    .pointerInput(monthView, selectedEpoch, shownMonthEpoch) {
+                        var total = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { total = 0f },
+                            onDragEnd = {
+                                val step = when {
+                                    total < -80.dp.toPx() -> 1L
+                                    total > 80.dp.toPx() -> -1L
+                                    else -> 0L
+                                }
+                                if (step != 0L) {
+                                    if (monthView) shownMonthEpoch = shownMonth.plusMonths(step).atDay(1).toEpochDay()
+                                    else selectedEpoch = selected.plusWeeks(step).toEpochDay()
+                                }
+                            },
+                        ) { _, amount -> total += amount }
+                    },
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -244,6 +286,7 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                                 inMonth = !monthView || YearMonth.from(day) == shownMonth,
                                 reminders = reminderDays[day]?.count { !it.reminder.completed } ?: 0,
                                 notes = noteDays[day]?.size ?: 0,
+                                events = eventDays[day]?.size ?: 0,
                                 alarms = CalendarModel.alarmsOn(day, alarms, groups, now).isNotEmpty(),
                                 modifier = Modifier.weight(1f),
                             ) { selectedEpoch = day.toEpochDay() }
@@ -255,6 +298,31 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                     Legend(Accent, "Reminders")
                     Legend(NoteGreen, "Notes")
                     Legend(AlarmOrange, "Alarms")
+                    if (showCalendar) Legend(EventPurple, "Events")
+                }
+            }
+            if (!settings.deviceCalendar && !calendarPromptHidden) {
+                Gap(12.dp)
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainer).padding(start = 16.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.Outlined.Event, null, tint = EventPurple)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        "Show your phone's calendar events here too",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = {
+                        if (DeviceCalendar.hasPermission(context)) {
+                            app.settings.update(app.settings.current.copy(deviceCalendar = true), force = true)
+                        } else {
+                            calendarPermission.launch(android.Manifest.permission.READ_CALENDAR)
+                        }
+                    }) { Text("Show") }
+                    TextButton(onClick = { calendarPromptHidden = true }) { Text("Not now") }
                 }
             }
             Gap(20.dp)
@@ -281,10 +349,25 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                 }
                 Gap(8.dp)
             }
-            if (agenda.isEmpty) {
+            val dayEvents = eventDays[selected].orEmpty()
+            if (agenda.isEmpty && dayEvents.isEmpty()) {
                 Text(
                     "Nothing planned. Type above to add a reminder, alarm or note for this day.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            dayEvents.forEach { ev ->
+                AgendaRow(
+                    icon = Icons.Outlined.Event,
+                    tint = Color(ev.color).takeIf { ev.color != 0 } ?: EventPurple,
+                    title = ev.title,
+                    subtitle = listOfNotNull(
+                        if (ev.allDay) "All day" else ev.begin.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)) +
+                            "–" + ev.end.toLocalTime().format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)),
+                        ev.location,
+                        ev.calendar.takeIf { it.isNotBlank() },
+                    ).joinToString(" · "),
+                    onClick = { runCatching { context.startActivity(DeviceCalendar.openIntent(ev.eventId)) } },
                 )
             }
             agenda.alarms.forEach { (a, t) ->
@@ -351,6 +434,46 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
     }
 }
 
+/**
+ * Shown when the sync folder holds a newer backup from another phone. PLANR pauses
+ * its own writes until you choose, so neither phone's data is overwritten unseen.
+ */
+@Composable
+private fun SyncBanner() {
+    val context = LocalContext.current
+    val app = PlanrApp.instance
+    val remote by com.exosynk.planr.data.AutoBackup.remote.collectAsState()
+    val r = remote ?: return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer).padding(16.dp),
+    ) {
+        Text("Newer data from ${r.deviceName}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Saved " + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                .format(java.util.Date(r.exportedAt)) +
+                if (r.localChangesPending) ". This phone also has changes that aren't in it; taking it replaces them." else ".",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = {
+                app.appScope.launch {
+                    val error = com.exosynk.planr.data.AutoBackup.acceptRemote(context.applicationContext)
+                    com.exosynk.planr.ui.components.Snack.show(error ?: "Synced from ${r.deviceName}")
+                }
+            }) { Text("Use it here") }
+            TextButton(onClick = {
+                app.appScope.launch {
+                    com.exosynk.planr.data.AutoBackup.keepMine(context.applicationContext)
+                    com.exosynk.planr.ui.components.Snack.show("Kept this phone's data")
+                }
+            }) { Text("Keep this phone's") }
+        }
+    }
+    Gap(12.dp)
+}
+
 @Composable
 private fun DayCell(
     day: LocalDate,
@@ -360,6 +483,7 @@ private fun DayCell(
     reminders: Int,
     notes: Int,
     alarms: Boolean,
+    events: Int = 0,
     modifier: Modifier,
     onClick: () -> Unit,
 ) {
@@ -387,6 +511,7 @@ private fun DayCell(
             if (reminders > 0) Dot(Accent)
             if (notes > 0) Dot(NoteGreen)
             if (alarms) Dot(AlarmOrange)
+            if (events > 0) Dot(EventPurple)
         }
     }
 }

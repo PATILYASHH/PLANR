@@ -328,6 +328,7 @@ private fun AppHistoryDialog(pkg: String, today: LocalDate, onDismiss: () -> Uni
 private fun BarChart(values: List<Long>, modifier: Modifier) {
     val max = values.maxOrNull()?.coerceAtLeast(1L) ?: 1L
     val track = MaterialTheme.colorScheme.surfaceContainerHigh
+    val bar = Accent
     Canvas(modifier) {
         if (values.isEmpty()) return@Canvas
         val gap = 4.dp.toPx()
@@ -338,7 +339,7 @@ private fun BarChart(values: List<Long>, modifier: Modifier) {
             val h = size.height * (v.toFloat() / max)
             if (h > 0f) {
                 drawRoundRect(
-                    if (i == values.lastIndex) Success else Accent,
+                    if (i == values.lastIndex) Success else bar,
                     Offset(x, size.height - h),
                     Size(barW, h),
                     CornerRadius(4.dp.toPx()),

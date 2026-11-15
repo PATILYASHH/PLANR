@@ -94,11 +94,12 @@ private fun ActiveFocus(now: Long) {
 
     SectionCard {
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val trackColor = AccentSoft
             Canvas(Modifier.size(240.dp)) {
                 val stroke = 14.dp.toPx()
                 val inset = stroke / 2
                 val arcSize = Size(size.width - stroke, size.height - stroke)
-                drawArc(AccentSoft, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                drawArc(trackColor, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
                 drawArc(
                     ringColor, -90f, 360f * progress, false, Offset(inset, inset), arcSize,
                     style = Stroke(stroke, cap = StrokeCap.Round),

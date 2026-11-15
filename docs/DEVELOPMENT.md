@@ -4,6 +4,9 @@ Build, release and architecture notes. Start with [CONTRIBUTING.md](../CONTRIBUT
 
 ## Releasing (maintainers)
 
+Releases must be signed with the ExoSynk Labs key: see [SIGNING.md](SIGNING.md).
+
+
 1. Write `release-notes/vX.Y.Z.md`.
 2. Set `VERSION` to `X.Y.Z` and push to `main`. You can also use **Actions → Release APK →
    Run workflow**, or push a `vX.Y.Z` tag.

@@ -5,7 +5,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.remember
+import com.exosynk.planr.ui.components.Snack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -44,6 +55,7 @@ import com.exosynk.planr.ui.habit.HabitModule
 import com.exosynk.planr.today.TodayNav
 import com.exosynk.planr.today.TodayScreen
 import com.exosynk.planr.ui.screens.AboutScreen
+import com.exosynk.planr.ui.screens.SearchScreen
 import com.exosynk.planr.ui.screens.InsightsScreen
 import com.exosynk.planr.ui.screens.SettingsScreen
 import com.exosynk.planr.ui.theme.PlanrTheme
@@ -81,6 +93,20 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) openRequest.value = intent?.getStringExtra(EXTRA_OPEN)
         setContent {
             PlanrTheme {
+                // Status/nav bar icons follow PLANR's own theme, not just the system's.
+                val dark = com.exosynk.planr.ui.theme.planrIsDark()
+                LaunchedEffect(dark) {
+                    val t = android.graphics.Color.TRANSPARENT
+                    val style = if (dark) androidx.activity.SystemBarStyle.dark(t) else androidx.activity.SystemBarStyle.light(t, t)
+                    enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                }
+                var onboarding by rememberSaveable { mutableStateOf(com.exosynk.planr.ui.onboarding.Onboarding.shouldShow(this@MainActivity)) }
+                if (onboarding) {
+                    Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
+                        com.exosynk.planr.ui.onboarding.OnboardingScreen(Modifier.padding(padding)) { onboarding = false }
+                    }
+                    return@PlanrTheme
+                }
                 var module by rememberSaveable { mutableIntStateOf(MODULE_TODAY) }
                 var habitTab by rememberSaveable { mutableIntStateOf(0) }
                 var page by rememberSaveable { mutableStateOf<String?>(null) }
@@ -94,13 +120,34 @@ class MainActivity : ComponentActivity() {
                         OPEN_NOTES -> module = MODULE_NOTES
                         OPEN_HABIT -> module = MODULE_HABIT
                         OPEN_TODAY -> module = MODULE_TODAY
+                        OPEN_OFFGRID -> { module = MODULE_HABIT; habitTab = HABIT_OFFGRID }
+                        OPEN_FOCUS -> { module = MODULE_HABIT; habitTab = HABIT_FOCUS }
                     }
-                    page = if (request == OPEN_ROUTINES) PAGE_ROUTINES else null
+                    page = when (request) {
+                        OPEN_ROUTINES -> PAGE_ROUTINES
+                        OPEN_NEW_REMINDER -> "reminder:0"
+                        OPEN_NEW_ALARM -> "alarm:0"
+                        OPEN_NEW_NOTE -> "note:0"
+                        OPEN_SEARCH -> PAGE_SEARCH
+                        else -> null
+                    }
                     openRequest.value = null
                 }
 
+                val snackbar = remember { SnackbarHostState() }
+                LaunchedEffect(Unit) {
+                    Snack.messages.collect { msg ->
+                        snackbar.currentSnackbarData?.dismiss()
+                        // Launch so a new message can replace one that is still showing.
+                        launch {
+                            val result = snackbar.showSnackbar(msg.text, msg.action, duration = SnackbarDuration.Short)
+                            if (result == SnackbarResult.ActionPerformed) msg.onAction?.invoke()
+                        }
+                    }
+                }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
+                    snackbarHost = { SnackbarHost(snackbar) },
                     bottomBar = {
                         if (page == null) {
                             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
@@ -110,6 +157,7 @@ class MainActivity : ComponentActivity() {
                                         onClick = { module = i },
                                         icon = { Icon(t.icon, contentDescription = t.label) },
                                         label = { Text(t.label, maxLines = 1) },
+                                        alwaysShowLabel = false,
                                     )
                                 }
                             }
@@ -117,13 +165,27 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { padding ->
                     val m = Modifier.padding(padding)
-                    val p = page
                     val back = { page = null }
-                    val parts = p?.split(':').orEmpty()
+                    // Fade between screens. The destination string is what each side renders,
+                    // so the outgoing screen stays intact while it fades out.
+                    AnimatedContent(
+                        targetState = page ?: "module:$module",
+                        transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                        label = "screen",
+                    ) { dest ->
+                    val parts = dest.split(':')
                     val id = parts.getOrNull(1)?.toLongOrNull() ?: 0L
+                    val shownModule = if (parts.first() == "module") id.toInt() else -1
                     when (parts.firstOrNull()) {
                         PAGE_SETTINGS -> SettingsScreen(m, onBack = back, onOpenAbout = { page = PAGE_ABOUT })
                         PAGE_ABOUT -> AboutScreen(m, onBack = back)
+                        PAGE_SEARCH -> SearchScreen(
+                            m, onBack = back,
+                            openAlarm = { page = "alarm:$it" },
+                            openReminder = { page = "reminder:$it" },
+                            openNote = { page = "note:$it" },
+                            openRoutine = { page = "routine:$it" },
+                        )
                         PAGE_INSIGHTS -> InsightsScreen(m, onBack = back)
                         "alarm" -> AlarmEditor(m, id, onDone = back)
                         "reminder" -> ReminderEditor(
@@ -140,7 +202,7 @@ class MainActivity : ComponentActivity() {
                         )
                         "routine" -> RoutineEditor(m, id, onDone = { page = PAGE_ROUTINES })
                         PAGE_ROUTINES -> RoutinesScreen(m, onEdit = { page = "routine:$it" }, onBack = back)
-                        else -> when (module) {
+                        else -> when (shownModule) {
                             MODULE_TODAY -> TodayScreen(
                                 m,
                                 TodayNav(
@@ -156,6 +218,7 @@ class MainActivity : ComponentActivity() {
                                     habit = { module = MODULE_HABIT; habitTab = 0 },
                                     settings = { page = PAGE_SETTINGS },
                                     about = { page = PAGE_ABOUT },
+                                    search = { page = PAGE_SEARCH },
                                 ),
                             )
                             MODULE_HABIT -> HabitModule(
@@ -170,6 +233,7 @@ class MainActivity : ComponentActivity() {
                             MODULE_REMINDERS -> RemindersScreen(m, onEdit = { page = "reminder:$it" })
                             else -> NotesScreen(m, onOpen = { page = "note:$it" })
                         }
+                    }
                     }
                 }
             }
@@ -189,12 +253,19 @@ class MainActivity : ComponentActivity() {
             if (PlanrApp.instance.offGrid.isLocked()) OffGridManager.showLock(this@MainActivity)
         }
         PlanrWidget.refresh(this)
+        PlanrApp.instance.appScope.launch { runCatching { com.exosynk.planr.data.AutoBackup.runIfDue(applicationContext) } }
     }
 
     companion object {
         const val EXTRA_OPEN = "open"
         const val OPEN_HABIT = "habit"
         const val OPEN_TODAY = "today"
+        const val OPEN_NEW_REMINDER = "new-reminder"
+        const val OPEN_NEW_ALARM = "new-alarm"
+        const val OPEN_NEW_NOTE = "new-note"
+        const val OPEN_SEARCH = "search"
+        const val OPEN_OFFGRID = "offgrid"
+        const val OPEN_FOCUS = "focus"
         const val OPEN_ALARM = "alarm"
         const val OPEN_REMINDERS = "reminders"
         const val OPEN_NOTES = "notes"
@@ -204,5 +275,6 @@ class MainActivity : ComponentActivity() {
         private const val PAGE_INSIGHTS = "insights"
         private const val PAGE_ROUTINES = "routines"
         private const val PAGE_ABOUT = "about"
+        private const val PAGE_SEARCH = "search"
     }
 }

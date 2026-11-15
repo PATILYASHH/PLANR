@@ -94,6 +94,10 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Un
     }
 
     val notifLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { tick++ }
+    val calendarLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        app.settings.update(app.settings.current.copy(deviceCalendar = granted), force = true)
+        tick++
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -112,6 +116,21 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Un
                 if (result.isSuccess) "Backup saved" else "Backup failed: ${result.exceptionOrNull()?.message}",
                 Toast.LENGTH_SHORT,
             ).show()
+        }
+    }
+
+    val folderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+            )
+        }
+        app.settings.update(app.settings.current.copy(autoBackupFolder = uri.toString()), force = true)
+        scope.launch {
+            val err = withContext(Dispatchers.IO) { com.exosynk.planr.data.AutoBackup.runIfDue(context, force = true) }
+            Toast.makeText(context, err?.let { "Backup failed: $it" } ?: "Backed up. PLANR will do this every day.", Toast.LENGTH_LONG).show()
+            tick++
         }
     }
 
@@ -144,6 +163,34 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Un
             LockdownBanner("Settings can only be made stricter")
             Gap(16.dp)
         }
+
+        // Appearance
+        SectionCard {
+            Text("Appearance", style = MaterialTheme.typography.titleLarge)
+            Gap(8.dp)
+            ChipChoice("Theme", com.exosynk.planr.data.ThemeMode.entries.map { it.ordinal }, s.themeMode.ordinal, {
+                com.exosynk.planr.data.ThemeMode.entries[it].title
+            }) { v ->
+                app.settings.update(app.settings.current.copy(themeMode = com.exosynk.planr.data.ThemeMode.entries[v]), force = true)
+            }
+            ToggleRow(
+                "Phone calendar on Today",
+                "Show events from your Google/Samsung calendar (read-only, on this phone)",
+                s.deviceCalendar && com.exosynk.planr.today.DeviceCalendar.hasPermission(context),
+            ) { on ->
+                if (on && !com.exosynk.planr.today.DeviceCalendar.hasPermission(context)) {
+                    calendarLauncher.launch(Manifest.permission.READ_CALENDAR)
+                } else {
+                    app.settings.update(app.settings.current.copy(deviceCalendar = on), force = true)
+                }
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                ToggleRow("Material You colours", "Match your wallpaper's colours", s.dynamicColor) { on ->
+                    app.settings.update(app.settings.current.copy(dynamicColor = on), force = true)
+                }
+            }
+        }
+        Gap(16.dp)
 
         if (!notificationsOn) {
             SectionCard {
@@ -339,6 +386,38 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Un
                     enabled = !lockdown,
                     onClick = { importLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) },
                 ) { Text("Restore") }
+            }
+            Gap(12.dp)
+            val folder = s.autoBackupFolder
+            val lastDay = remember(tick, folder) { com.exosynk.planr.data.AutoBackup.lastBackupDay(context) }
+            val lastError = remember(tick, folder) { com.exosynk.planr.data.AutoBackup.lastError(context) }
+            ToggleRow(
+                "Auto-backup & sync folder",
+                when {
+                    folder == null -> "Save to a folder you choose after every change (keeps the last ${com.exosynk.planr.data.AutoBackup.KEEP} days). " +
+                        "Pick the same folder on another phone, e.g. one a sync app keeps in step, and PLANR offers its newer data there."
+                    lastError != null -> "Last attempt failed: $lastError"
+                    lastDay != null -> "On · last saved $lastDay" + com.exosynk.planr.data.AutoBackup.lastWriteAt(context).takeIf { it > 0 }?.let {
+                        " " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(it))
+                    }.orEmpty()
+                    else -> "On"
+                },
+                folder != null,
+            ) { on ->
+                if (on) folderLauncher.launch(null)
+                else app.settings.update(app.settings.current.copy(autoBackupFolder = null), force = true)
+            }
+            if (folder != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = {
+                        scope.launch {
+                            val err = withContext(Dispatchers.IO) { com.exosynk.planr.data.AutoBackup.runIfDue(context, force = true) }
+                            Toast.makeText(context, err?.let { "Backup failed: $it" } ?: "Backed up", Toast.LENGTH_SHORT).show()
+                            tick++
+                        }
+                    }) { Text("Back up now") }
+                    TextButton(onClick = { folderLauncher.launch(null) }) { Text("Change folder") }
+                }
             }
         }
         Gap(16.dp)

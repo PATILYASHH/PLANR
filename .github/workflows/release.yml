@@ -60,15 +60,20 @@ jobs:
         id: sign
         env:
           KEYSTORE_B64: ${{ secrets.PLANR_KEYSTORE_BASE64 }}
+          PLANR_KEYSTORE_PASSWORD: ${{ secrets.PLANR_KEYSTORE_PASSWORD }}
+          PLANR_KEY_ALIAS: ${{ secrets.PLANR_KEY_ALIAS }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/planr-release.jks"
             echo "path=$RUNNER_TEMP/planr-release.jks" >> "$GITHUB_OUTPUT"
             echo "signed=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::PLANR_KEYSTORE_BASE64 secret not set — signing with the debug key."
-            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::error::PLANR_KEYSTORE_BASE64 is not set. Releases must be signed with the ExoSynk Labs key (see docs/SIGNING.md)."
+            exit 1
           fi
+          # Fail early if the passwords/alias don't open the keystore.
+          keytool -list -keystore "$RUNNER_TEMP/planr-release.jks" -storepass "$PLANR_KEYSTORE_PASSWORD" -alias "$PLANR_KEY_ALIAS" > /dev/null \
+            || { echo "::error::Keystore password or alias is wrong (PLANR_KEYSTORE_PASSWORD / PLANR_KEY_ALIAS)."; exit 1; }
 
       - name: Test
         run: ./gradlew testDebugUnitTest --stacktrace
@@ -94,9 +99,6 @@ jobs:
           if [ ! -f "$F" ]; then
             F="$RUNNER_TEMP/notes.md"
             echo "PLANR ${{ steps.ver.outputs.name }} — an ExoSynk Labs project." > "$F"
-          fi
-          if [ "${{ steps.sign.outputs.signed }}" != "true" ]; then
-            printf '\n> ⚠️ Signed with a temporary debug key. Uninstall this build before installing a later signed release.\n' >> "$F"
           fi
           echo "path=$F" >> "$GITHUB_OUTPUT"
 

@@ -22,6 +22,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import com.exosynk.planr.ui.components.EmptyState
 import androidx.compose.material.icons.outlined.Circle
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Repeat
@@ -120,8 +129,18 @@ fun RemindersScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
                     Gap(8.dp)
                 }
                 if (shown.isEmpty()) {
-                    Gap(16.dp)
-                    Text(emptyText(view), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    EmptyState(
+                        Icons.Outlined.CheckCircle,
+                        emptyText(view),
+                        if (view == ReminderView.COMPLETED) "Tick a reminder off and it shows up here."
+                        else "Type above the way you'd say it, e.g. “call Parth at 9 am”.",
+                    )
+                } else if (view != ReminderView.COMPLETED) {
+                    Text(
+                        "Swipe right to complete, left to delete",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
                 if (view == ReminderView.COMPLETED && shown.isNotEmpty()) {
                     TextButton(onClick = { app.appScope.launch { app.db.reminderDao().deleteCompleted() } }) {
@@ -130,7 +149,9 @@ fun RemindersScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
                 }
             }
             items(shown, key = { it.id }) { r ->
-                ReminderRow(r, categories.firstOrNull { it.id == r.categoryId }, today, onClick = { onEdit(r.id) })
+                SwipeReminder(r, Modifier.animateItem()) {
+                    ReminderRow(r, categories.firstOrNull { it.id == r.categoryId }, today, onClick = { onEdit(r.id) })
+                }
             }
         }
         ExtendedFloatingActionButton(
@@ -167,19 +188,69 @@ private fun emptyText(v: ReminderView) = when (v) {
 @Composable
 private fun Dot(color: Color) = Box(Modifier.size(10.dp).clip(CircleShape).background(color))
 
+/** Swipe right to complete, left to delete; both can be undone from the snackbar. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeReminder(r: Reminder, modifier: Modifier, content: @Composable () -> Unit) {
+    val app = PlanrApp.instance
+    val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
+    val state = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                SwipeToDismissBoxValue.StartToEnd -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    app.appScope.launch { Reminders.completeWithUndo(context.applicationContext, r) }
+                    // A repeating reminder moves to its next date and stays in the list.
+                    r.repeatRule == Repeat.NONE
+                }
+                SwipeToDismissBoxValue.EndToStart -> {
+                    haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                    app.appScope.launch { Reminders.deleteWithUndo(context.applicationContext, r) }
+                    true
+                }
+                else -> false
+            }
+        },
+    )
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        enableDismissFromStartToEnd = !r.completed,
+        backgroundContent = {
+            val toEnd = state.dismissDirection == SwipeToDismissBoxValue.StartToEnd
+            Row(
+                Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))
+                    .background(if (toEnd) Success.copy(alpha = 0.25f) else Danger.copy(alpha = 0.25f))
+                    .padding(horizontal = 20.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (toEnd) Arrangement.Start else Arrangement.End,
+            ) {
+                Icon(
+                    if (toEnd) Icons.Outlined.CheckCircle else Icons.Outlined.Delete,
+                    contentDescription = null,
+                    tint = if (toEnd) Success else Danger,
+                )
+            }
+        },
+    ) { content() }
+}
+
 @Composable
 private fun ReminderRow(r: Reminder, category: ReminderCategory?, today: LocalDate, onClick: () -> Unit) {
     val app = PlanrApp.instance
     val context = LocalContext.current
     val overdue = !r.completed && r.dueAt != null && r.dueAt < System.currentTimeMillis() &&
         !(r.allDay && ReminderTime.toLocal(r.dueAt).toLocalDate() == today)
+    val haptics = LocalHapticFeedback.current
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 10.dp),
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).clickable(onClick = onClick).padding(vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
             app.appScope.launch {
-                if (r.completed) Reminders.reopen(context.applicationContext, r) else Reminders.complete(context.applicationContext, r.id)
+                if (r.completed) Reminders.reopen(context.applicationContext, r) else Reminders.completeWithUndo(context.applicationContext, r)
             }
         }) {
             Icon(

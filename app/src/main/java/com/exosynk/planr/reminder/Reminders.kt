@@ -52,6 +52,24 @@ object Reminders {
         PlanrWidget.refresh(context)
     }
 
+    /** Completes [r] and offers Undo (puts it back exactly as it was). */
+    suspend fun completeWithUndo(context: Context, r: Reminder) {
+        complete(context, r.id)
+        val app = context.applicationContext
+        com.exosynk.planr.ui.components.Snack.show("Done: ${r.title}", "Undo") {
+            PlanrApp.instance.appScope.launch { save(app, r) }
+        }
+    }
+
+    /** Deletes [r] and offers Undo. */
+    suspend fun deleteWithUndo(context: Context, r: Reminder) {
+        delete(context, r.id)
+        val app = context.applicationContext
+        com.exosynk.planr.ui.components.Snack.show("Deleted: ${r.title}", "Undo") {
+            PlanrApp.instance.appScope.launch { save(app, r) }
+        }
+    }
+
     suspend fun reopen(context: Context, r: Reminder) {
         app.db.reminderDao().upsert(r.copy(completed = false, completedAt = null))
         schedule(context, r.id)
@@ -114,9 +132,15 @@ object Reminders {
 
     /** Called when an alert fires. */
     internal suspend fun fire(context: Context, id: Long, stage: ReminderTime.Stage) {
-        val r = app.db.reminderDao().get(id) ?: return
+        var r = app.db.reminderDao().get(id) ?: return
         if (r.completed) return
-        if (r.snoozedUntil != 0L) app.db.reminderDao().upsert(r.copy(snoozedUntil = 0))
+        // An overdue repeating reminder alerting for a later occurrence moves to it.
+        val nowMs = System.currentTimeMillis()
+        val rolledTo = if (r.snoozedUntil == 0L) ReminderTime.rollForward(r, nowMs + if (stage == ReminderTime.Stage.EARLY) r.earlyMinutes * 60_000L else 0L) else null
+        if (rolledTo != null || r.snoozedUntil != 0L) {
+            r = r.copy(dueAt = rolledTo ?: r.dueAt, snoozedUntil = 0)
+            app.db.reminderDao().upsert(r)
+        }
         when {
             stage == ReminderTime.Stage.EARLY -> Notifier.reminder(context, r, early = true)
             r.style == AlertStyle.ALARM -> AlarmService.start(context, AlarmService.Kind.REMINDER, id)

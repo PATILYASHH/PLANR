@@ -34,6 +34,9 @@ class PlanrWidget : AppWidgetProvider() {
         fun refresh(context: Context) {
             val appContext = context.applicationContext
             val manager = AppWidgetManager.getInstance(appContext) ?: return
+            // The Today and Quick add widgets update alongside this one.
+            TodayWidget.refresh(appContext)
+            QuickAddWidget.refresh(appContext)
             val ids = runCatching {
                 manager.getAppWidgetIds(ComponentName(appContext, PlanrWidget::class.java))
             }.getOrNull()

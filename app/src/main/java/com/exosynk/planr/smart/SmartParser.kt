@@ -57,7 +57,7 @@ object SmartParser {
     )
 
     fun parse(input: String, now: LocalDateTime = LocalDateTime.now()): SmartResult {
-        val text = input.trim().replace(Regex("\\s+"), " ")
+        val text = Hinglish.normalize(input).replace(Regex("\\s+"), " ")
         if (text.isEmpty()) return SmartResult(SmartKind.REMINDER, "")
 
         // ---- notes: "note: …" / "jot …" ----

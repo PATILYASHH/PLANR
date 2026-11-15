@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.CreateNewFolder
 import androidx.compose.material.icons.outlined.ErrorOutline
@@ -113,10 +114,12 @@ fun AlarmScreen(modifier: Modifier, onEdit: (Long) -> Unit) {
             }
             if (alarms.isEmpty()) {
                 item {
-                    Text(
-                        "No alarms yet. Tap “Add alarm”. Group alarms (e.g. Weekday mornings) to switch them all at once.",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    com.exosynk.planr.ui.components.EmptyState(
+                        Icons.Outlined.Alarm,
+                        "No alarms yet",
+                        "Group alarms (e.g. Weekday mornings) to switch them all at once.",
+                        "Add alarm",
+                    ) { onEdit(0L) }
                 }
             }
             items(grouped[null].orEmpty(), key = { "a${it.id}" }) { a ->

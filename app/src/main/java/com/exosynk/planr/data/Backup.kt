@@ -42,12 +42,29 @@ object Backup {
     const val FORMAT = "planr-backup"
     const val VERSION = 2
 
-    fun encode(data: BackupData, exportedAt: Long, appVersion: String): String {
+    /** Who wrote a backup and when; read without touching the rest of the file's meaning. */
+    data class Header(val exportedAt: Long, val device: String, val deviceName: String)
+
+    fun header(json: String): Header? {
+        val root = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (root.optString("format") != FORMAT) return null
+        return Header(root.optLong("exportedAt", 0L), root.optString("device", ""), root.optString("deviceName", ""))
+    }
+
+    fun encode(
+        data: BackupData,
+        exportedAt: Long,
+        appVersion: String,
+        device: String = "",
+        deviceName: String = "",
+    ): String {
         val root = JSONObject()
         root.put("format", FORMAT)
         root.put("version", VERSION)
         root.put("appVersion", appVersion)
         root.put("exportedAt", exportedAt)
+        if (device.isNotEmpty()) root.put("device", device)
+        if (deviceName.isNotEmpty()) root.put("deviceName", deviceName)
 
         root.put("shields", JSONArray().apply {
             data.shields.forEach { r ->
@@ -97,6 +114,8 @@ object Backup {
             put("windDownEnd", st.windDownEnd)
             put("windDownDnd", st.windDownDnd)
             put("eyeCareEnabled", st.eyeCareEnabled)
+            put("themeMode", st.themeMode.name)
+            put("dynamicColor", st.dynamicColor)
         })
 
         val p = data.progress.stats
@@ -344,6 +363,8 @@ object Backup {
             windDownEnd = so.optInt("windDownEnd", d.windDownEnd),
             windDownDnd = so.optBoolean("windDownDnd", d.windDownDnd),
             eyeCareEnabled = so.optBoolean("eyeCareEnabled", d.eyeCareEnabled),
+            themeMode = runCatching { ThemeMode.valueOf(so.optString("themeMode")) }.getOrDefault(d.themeMode),
+            dynamicColor = so.optBoolean("dynamicColor", d.dynamicColor),
         ).sanitized()
 
         val po = root.optJSONObject("progress") ?: JSONObject()
@@ -415,7 +436,11 @@ object BackupManager {
         val version = runCatching {
             app.packageManager.getPackageInfo(app.packageName, 0).versionName
         }.getOrNull() ?: ""
-        return Backup.encode(data, System.currentTimeMillis(), version)
+        return Backup.encode(
+            data, System.currentTimeMillis(), version,
+            device = AutoBackup.deviceId(app),
+            deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim(),
+        )
     }
 
     /**
@@ -429,7 +454,8 @@ object BackupManager {
         app.db.shieldDao().replaceAll(data.shields)
         app.db.scheduleDao().replaceAll(data.schedules)
         app.db.offGridDao().replaceAll(data.sessions)
-        app.settings.update(data.settings, force = true)
+        // The auto-backup folder is a permission on *this* phone; never take it from a file.
+        app.settings.update(data.settings.copy(autoBackupFolder = app.settings.current.autoBackupFolder), force = true)
         app.progress.restore(data.progress)
         data.planner?.let { p ->
             // Cancel what's registered for the alarms/reminders being replaced, then register the new set.

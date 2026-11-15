@@ -114,7 +114,7 @@ class AlarmRingActivity : ComponentActivity() {
             systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         setContent {
-            PlanrTheme {
+            PlanrTheme(forceDark = true) {
                 BackHandler { /* use Snooze or Dismiss */ }
                 val ring by AlarmService.ringing.collectAsState()
                 val brief by AlarmService.briefFor.collectAsState()
