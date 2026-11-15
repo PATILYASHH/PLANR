@@ -52,6 +52,24 @@ object Reminders {
         PlanrWidget.refresh(context)
     }
 
+    /** Completes [r] and offers Undo (puts it back exactly as it was). */
+    suspend fun completeWithUndo(context: Context, r: Reminder) {
+        complete(context, r.id)
+        val app = context.applicationContext
+        com.exosynk.planr.ui.components.Snack.show("Done: ${r.title}", "Undo") {
+            PlanrApp.instance.appScope.launch { save(app, r) }
+        }
+    }
+
+    /** Deletes [r] and offers Undo. */
+    suspend fun deleteWithUndo(context: Context, r: Reminder) {
+        delete(context, r.id)
+        val app = context.applicationContext
+        com.exosynk.planr.ui.components.Snack.show("Deleted: ${r.title}", "Undo") {
+            PlanrApp.instance.appScope.launch { save(app, r) }
+        }
+    }
+
     suspend fun reopen(context: Context, r: Reminder) {
         app.db.reminderDao().upsert(r.copy(completed = false, completedAt = null))
         schedule(context, r.id)

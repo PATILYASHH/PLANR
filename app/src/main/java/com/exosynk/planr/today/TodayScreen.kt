@@ -5,6 +5,8 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -190,6 +192,7 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
                 IconButton(onClick = nav.settings) { Icon(Icons.Outlined.Settings, contentDescription = "Settings") }
             }
             Gap(16.dp)
+            SyncBanner()
             SmartAddBar(
                 defaultDay = selected.takeIf { it != today },
                 placeholder = if (selected == today) "Try “call Parth at 9 am” or “wake me at 6:30”"
@@ -207,7 +210,25 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
             // Calendar
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer).padding(12.dp).animateContentSize(),
+                    .background(MaterialTheme.colorScheme.surfaceContainer).padding(12.dp).animateContentSize()
+                    // Swipe left/right across the calendar for the next/previous week or month.
+                    .pointerInput(monthView, selectedEpoch, shownMonthEpoch) {
+                        var total = 0f
+                        detectHorizontalDragGestures(
+                            onDragStart = { total = 0f },
+                            onDragEnd = {
+                                val step = when {
+                                    total < -80.dp.toPx() -> 1L
+                                    total > 80.dp.toPx() -> -1L
+                                    else -> 0L
+                                }
+                                if (step != 0L) {
+                                    if (monthView) shownMonthEpoch = shownMonth.plusMonths(step).atDay(1).toEpochDay()
+                                    else selectedEpoch = selected.plusWeeks(step).toEpochDay()
+                                }
+                            },
+                        ) { _, amount -> total += amount }
+                    },
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
@@ -411,6 +432,46 @@ fun TodayScreen(modifier: Modifier, nav: TodayNav) {
             }
         }
     }
+}
+
+/**
+ * Shown when the sync folder holds a newer backup from another phone. PLANR pauses
+ * its own writes until you choose, so neither phone's data is overwritten unseen.
+ */
+@Composable
+private fun SyncBanner() {
+    val context = LocalContext.current
+    val app = PlanrApp.instance
+    val remote by com.exosynk.planr.data.AutoBackup.remote.collectAsState()
+    val r = remote ?: return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.primaryContainer).padding(16.dp),
+    ) {
+        Text("Newer data from ${r.deviceName}", style = MaterialTheme.typography.titleMedium)
+        Text(
+            "Saved " + java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT)
+                .format(java.util.Date(r.exportedAt)) +
+                if (r.localChangesPending) ". This phone also has changes that aren't in it; taking it replaces them." else ".",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            TextButton(onClick = {
+                app.appScope.launch {
+                    val error = com.exosynk.planr.data.AutoBackup.acceptRemote(context.applicationContext)
+                    com.exosynk.planr.ui.components.Snack.show(error ?: "Synced from ${r.deviceName}")
+                }
+            }) { Text("Use it here") }
+            TextButton(onClick = {
+                app.appScope.launch {
+                    com.exosynk.planr.data.AutoBackup.keepMine(context.applicationContext)
+                    com.exosynk.planr.ui.components.Snack.show("Kept this phone's data")
+                }
+            }) { Text("Keep this phone's") }
+        }
+    }
+    Gap(12.dp)
 }
 
 @Composable

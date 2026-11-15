@@ -99,14 +99,14 @@ fun NotesScreen(modifier: Modifier, onOpen: (Long) -> Unit) {
                         FilterChip(selected = archived, onClick = { archived = true }, label = { Text("Archived") })
                     }
                     if (shown.isEmpty()) {
-                        Gap(16.dp)
-                        Text(
+                        com.exosynk.planr.ui.components.EmptyState(
+                            Icons.Outlined.Checklist,
                             when {
-                                query.isNotBlank() -> "No notes match “$query”."
-                                archived -> "No archived notes."
-                                else -> "No notes yet. Tip: during Off-Grid you can jot thoughts from the lock screen."
+                                query.isNotBlank() -> "No notes match “$query”"
+                                archived -> "No archived notes"
+                                else -> "No notes yet"
                             },
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            if (query.isBlank() && !archived) "Tip: during Off-Grid you can jot thoughts from the lock screen." else "",
                         )
                     }
                 }

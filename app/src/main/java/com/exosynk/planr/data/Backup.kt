@@ -42,12 +42,29 @@ object Backup {
     const val FORMAT = "planr-backup"
     const val VERSION = 2
 
-    fun encode(data: BackupData, exportedAt: Long, appVersion: String): String {
+    /** Who wrote a backup and when; read without touching the rest of the file's meaning. */
+    data class Header(val exportedAt: Long, val device: String, val deviceName: String)
+
+    fun header(json: String): Header? {
+        val root = runCatching { JSONObject(json) }.getOrNull() ?: return null
+        if (root.optString("format") != FORMAT) return null
+        return Header(root.optLong("exportedAt", 0L), root.optString("device", ""), root.optString("deviceName", ""))
+    }
+
+    fun encode(
+        data: BackupData,
+        exportedAt: Long,
+        appVersion: String,
+        device: String = "",
+        deviceName: String = "",
+    ): String {
         val root = JSONObject()
         root.put("format", FORMAT)
         root.put("version", VERSION)
         root.put("appVersion", appVersion)
         root.put("exportedAt", exportedAt)
+        if (device.isNotEmpty()) root.put("device", device)
+        if (deviceName.isNotEmpty()) root.put("deviceName", deviceName)
 
         root.put("shields", JSONArray().apply {
             data.shields.forEach { r ->
@@ -419,7 +436,11 @@ object BackupManager {
         val version = runCatching {
             app.packageManager.getPackageInfo(app.packageName, 0).versionName
         }.getOrNull() ?: ""
-        return Backup.encode(data, System.currentTimeMillis(), version)
+        return Backup.encode(
+            data, System.currentTimeMillis(), version,
+            device = AutoBackup.deviceId(app),
+            deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim(),
+        )
     }
 
     /**

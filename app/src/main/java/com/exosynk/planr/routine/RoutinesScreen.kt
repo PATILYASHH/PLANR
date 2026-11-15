@@ -96,8 +96,11 @@ fun RoutinesScreen(modifier: Modifier, onEdit: (Long) -> Unit, onBack: (() -> Un
                     Text("Running now: " + running.joinToString(", ") { it.name }, color = Success)
                 }
                 if (routines.isEmpty()) {
-                    Gap(8.dp)
-                    Text("No routines yet. Start from a suggestion below or create your own.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    com.exosynk.planr.ui.components.EmptyState(
+                        Icons.Outlined.PlayArrow,
+                        "No routines yet",
+                        "Start from a suggestion below, or create your own.",
+                    )
                 }
             }
             items(routines, key = { it.id }) { r ->

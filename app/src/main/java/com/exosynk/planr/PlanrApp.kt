@@ -21,6 +21,7 @@ import com.exosynk.planr.engine.UsageHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 /** Application + tiny service locator (no DI framework needed at this size). */
@@ -69,6 +70,7 @@ class PlanrApp : Application() {
         seedProgressFromHistory()
         // Re-register alarms, reminders and routine timers (also covers app updates and data restores).
         appScope.launch { rescheduleEverything(this@PlanrApp) }
+        watchChanges()
     }
 
     /** Upgrading from v0.2: give credit for Off-Grid sessions completed before XP existed. */
@@ -90,6 +92,31 @@ class PlanrApp : Application() {
                 }
             }
             prefs.edit { putBoolean("seeded", true) }
+        }
+    }
+
+    /**
+     * Keeps everything in step: whenever saved data changes, widgets refresh at once
+     * and the sync folder gets a fresh backup shortly after.
+     */
+    @OptIn(kotlinx.coroutines.FlowPreview::class)
+    private fun watchChanges() {
+        val changes = kotlinx.coroutines.flow.merge(
+            db.alarmDao().observeAll(), db.alarmGroupDao().observeAll(), db.reminderDao().observeAll(),
+            db.reminderCategoryDao().observeAll(), db.noteDao().observeAll(), db.routineDao().observeAll(),
+            db.shieldDao().observeAll(), db.scheduleDao().observeAll(), settings.state,
+        )
+        appScope.launch {
+            var first = true
+            changes.debounce(1_500).collect {
+                // The first emission is just the initial load, not a change.
+                if (first) { first = false; return@collect }
+                com.exosynk.planr.data.AutoBackup.markDirty(this@PlanrApp)
+                com.exosynk.planr.ui.widget.PlanrWidget.refresh(this@PlanrApp)
+            }
+        }
+        appScope.launch {
+            changes.debounce(30_000).collect { runCatching { com.exosynk.planr.data.AutoBackup.runIfDue(this@PlanrApp) } }
         }
     }
 

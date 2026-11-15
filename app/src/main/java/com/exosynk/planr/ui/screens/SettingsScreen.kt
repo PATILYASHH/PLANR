@@ -392,11 +392,14 @@ fun SettingsScreen(modifier: Modifier, onBack: () -> Unit, onOpenAbout: () -> Un
             val lastDay = remember(tick, folder) { com.exosynk.planr.data.AutoBackup.lastBackupDay(context) }
             val lastError = remember(tick, folder) { com.exosynk.planr.data.AutoBackup.lastError(context) }
             ToggleRow(
-                "Daily auto-backup",
+                "Auto-backup & sync folder",
                 when {
-                    folder == null -> "Save a dated backup to a folder you choose, every day (keeps the last ${com.exosynk.planr.data.AutoBackup.KEEP})"
+                    folder == null -> "Save to a folder you choose after every change (keeps the last ${com.exosynk.planr.data.AutoBackup.KEEP} days). " +
+                        "Pick the same folder on another phone, e.g. one a sync app keeps in step, and PLANR offers its newer data there."
                     lastError != null -> "Last attempt failed: $lastError"
-                    lastDay != null -> "On · last backup $lastDay"
+                    lastDay != null -> "On · last saved $lastDay" + com.exosynk.planr.data.AutoBackup.lastWriteAt(context).takeIf { it > 0 }?.let {
+                        " " + java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(it))
+                    }.orEmpty()
                     else -> "On"
                 },
                 folder != null,

@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.exosynk.planr.PlanrApp
 import com.exosynk.planr.data.ThemeMode
@@ -69,6 +70,15 @@ private val LightScheme = lightColorScheme(
     error = Color(0xFFD93A3A),
 )
 
+/** One rounded family for buttons, fields, cards, sheets and dialogs. */
+private val PlanrShapes = androidx.compose.material3.Shapes(
+    extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+    small = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+    medium = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+    large = androidx.compose.foundation.shape.RoundedCornerShape(24.dp),
+    extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
+)
+
 private val PlanrType = Typography(
     displayLarge = TextStyle(fontSize = 64.sp, fontWeight = FontWeight.Light, letterSpacing = (-1).sp),
     headlineMedium = TextStyle(fontSize = 28.sp, fontWeight = FontWeight.SemiBold),
@@ -105,7 +115,7 @@ fun PlanrTheme(forceDark: Boolean = false, content: @Composable () -> Unit) {
         dark -> DarkScheme
         else -> LightScheme
     }
-    MaterialTheme(colorScheme = scheme, typography = PlanrType, content = content)
+    MaterialTheme(colorScheme = scheme, typography = PlanrType, shapes = PlanrShapes, content = content)
 }
 
 /** True when the current scheme is light (for colours that need light/dark variants). */

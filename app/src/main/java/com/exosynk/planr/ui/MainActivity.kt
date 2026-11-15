@@ -5,7 +5,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.remember
+import com.exosynk.planr.ui.components.Snack
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.CalendarMonth
@@ -123,8 +134,20 @@ class MainActivity : ComponentActivity() {
                     openRequest.value = null
                 }
 
+                val snackbar = remember { SnackbarHostState() }
+                LaunchedEffect(Unit) {
+                    Snack.messages.collect { msg ->
+                        snackbar.currentSnackbarData?.dismiss()
+                        // Launch so a new message can replace one that is still showing.
+                        launch {
+                            val result = snackbar.showSnackbar(msg.text, msg.action, duration = SnackbarDuration.Short)
+                            if (result == SnackbarResult.ActionPerformed) msg.onAction?.invoke()
+                        }
+                    }
+                }
                 Scaffold(
                     containerColor = MaterialTheme.colorScheme.background,
+                    snackbarHost = { SnackbarHost(snackbar) },
                     bottomBar = {
                         if (page == null) {
                             NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer) {
@@ -134,6 +157,7 @@ class MainActivity : ComponentActivity() {
                                         onClick = { module = i },
                                         icon = { Icon(t.icon, contentDescription = t.label) },
                                         label = { Text(t.label, maxLines = 1) },
+                                        alwaysShowLabel = false,
                                     )
                                 }
                             }
@@ -141,10 +165,17 @@ class MainActivity : ComponentActivity() {
                     },
                 ) { padding ->
                     val m = Modifier.padding(padding)
-                    val p = page
                     val back = { page = null }
-                    val parts = p?.split(':').orEmpty()
+                    // Fade between screens. The destination string is what each side renders,
+                    // so the outgoing screen stays intact while it fades out.
+                    AnimatedContent(
+                        targetState = page ?: "module:$module",
+                        transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                        label = "screen",
+                    ) { dest ->
+                    val parts = dest.split(':')
                     val id = parts.getOrNull(1)?.toLongOrNull() ?: 0L
+                    val shownModule = if (parts.first() == "module") id.toInt() else -1
                     when (parts.firstOrNull()) {
                         PAGE_SETTINGS -> SettingsScreen(m, onBack = back, onOpenAbout = { page = PAGE_ABOUT })
                         PAGE_ABOUT -> AboutScreen(m, onBack = back)
@@ -171,7 +202,7 @@ class MainActivity : ComponentActivity() {
                         )
                         "routine" -> RoutineEditor(m, id, onDone = { page = PAGE_ROUTINES })
                         PAGE_ROUTINES -> RoutinesScreen(m, onEdit = { page = "routine:$it" }, onBack = back)
-                        else -> when (module) {
+                        else -> when (shownModule) {
                             MODULE_TODAY -> TodayScreen(
                                 m,
                                 TodayNav(
@@ -202,6 +233,7 @@ class MainActivity : ComponentActivity() {
                             MODULE_REMINDERS -> RemindersScreen(m, onEdit = { page = "reminder:$it" })
                             else -> NotesScreen(m, onOpen = { page = "note:$it" })
                         }
+                    }
                     }
                 }
             }
